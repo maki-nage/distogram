@@ -77,3 +77,13 @@ def sum(h, value):
     s = s + bins[i][1] / 2
     return s
 
+
+def count(h):
+    '''Returns the number of items in the histogram
+    '''
+    sum = 0
+    for i in h.bins:
+        sum += i[1]
+
+    return sum
+
