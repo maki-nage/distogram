@@ -1,0 +1,10 @@
+__pycache__
+build
+_build
+dist
+*.egg-info
+.ropeproject
+.vscode
+.eggs
+.DS_Store
+.pytest_cache
