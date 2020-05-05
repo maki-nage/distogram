@@ -29,6 +29,7 @@ def trim(h):
     while len(bins) > h.bin_count:
         min_diff = None
         i = None
+        prev_value = 0
         for index, value in enumerate(h.bins):
             if index > 0:
                 diff = value[0] - prev_value
