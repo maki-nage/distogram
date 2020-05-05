@@ -6,9 +6,10 @@ import random
 
 
 def test_quantile():
-    h = distogram.Distogram(bin_count=3, bins=[
+    h = distogram.Distogram(bin_count=3)
+    h.bins=[
         (16, 4), (23, 3), (28, 5)
-    ])
+    ]
 
     assert distogram.quantile(h, 0.5) == approx(19.5)
 

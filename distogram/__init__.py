@@ -19,9 +19,9 @@ class Distogram(NamedTuple):
 class Distogram(object):
     __slots__ = 'bin_count', 'bins'
 
-    def __init__(self, bin_count=200, bins=[]):
+    def __init__(self, bin_count=200):
         self.bin_count = bin_count
-        self.bins = bins
+        self.bins = []
 
 
 def trim(h):
@@ -115,6 +115,7 @@ def quantile(h, value):
 
     bins = [(pt[i], mt[i]) for i in range(len(mt))]
     print(bins)
-    ht = Distogram(bin_count=h.bin_count, bins=bins)
+    ht = Distogram(bin_count=h.bin_count)
+    ht.bins = bins
     q = sum(ht, q_count+1)
     return q
