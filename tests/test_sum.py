@@ -1,4 +1,5 @@
 from pytest import approx
+import random
 import distogram
 
 
@@ -13,4 +14,15 @@ def test_sum():
     print(h)
 
     actual_result = distogram.sum(h, 25)
-    assert actual_result == approx(6.316326)
+    assert actual_result == approx(6.859999999)
+
+
+def test_sum_normal():
+    points = 10000
+    normal = [random.normalvariate(0.0, 1.0) for _ in range(points)]
+    h = distogram.Distogram()
+
+    for i in normal:
+        distogram.update(h, i)
+
+    assert distogram.sum(h, 0) == approx(points/2, rel=0.02)
