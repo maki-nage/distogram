@@ -11,7 +11,7 @@ def test_quantile():
         (16, 4), (23, 3), (28, 5)
     ]
 
-    assert distogram.quantile(h, 0.5) == approx(19.5)
+    assert distogram.quantile(h, 0.5) == approx(23.625)
 
 
 def test_normal():    

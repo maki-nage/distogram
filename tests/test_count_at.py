@@ -3,7 +3,7 @@ import random
 import distogram
 
 
-def test_sum():
+def test_count_at():
     h = distogram.Distogram(bin_count=3)
     print(h)
 
@@ -13,11 +13,11 @@ def test_sum():
     h = distogram.update(h, 28, count=5)
     print(h)
 
-    actual_result = distogram.sum(h, 25)
+    actual_result = distogram.count_at(h, 25)
     assert actual_result == approx(6.859999999)
 
 
-def test_sum_normal():
+def test_count_at_normal():
     points = 10000
     normal = [random.normalvariate(0.0, 1.0) for _ in range(points)]
     h = distogram.Distogram()
@@ -25,4 +25,4 @@ def test_sum_normal():
     for i in normal:
         distogram.update(h, i)
 
-    assert distogram.sum(h, 0) == approx(points/2, rel=0.02)
+    assert distogram.count_at(h, 0) == approx(points/2, rel=0.02)

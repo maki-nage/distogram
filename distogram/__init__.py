@@ -1,27 +1,43 @@
-from collections import namedtuple
-#from typing import Any, List, Tuple, NamedTuple
+import math
+from functools import reduce
 
 __author__ = """Romain Picard"""
 __email__ = 'romain.picard@oakbits.com'
 __version__ = '0.0.0'
 
 
-'''
-class Distogram(NamedTuple):    
-    bin_count: int = 200
-    bins: List[Tuple] = []
-'''
-
-#Distogram = namedtuple('Distogram', ['bin_count', 'bins'])
-#Distogram.__new__.__defaults__ = (200, [],)
-
-
+# bins is a tuple of (cut point, count)
 class Distogram(object):
+    '''Compressed representation of the histogram of a distribution
+    '''
     __slots__ = 'bin_count', 'bins'
 
     def __init__(self, bin_count=200):
+        '''Creates a new Distogram object
+
+        Args:
+            bin_count: [Optional] the number of bins to use.
+
+        Returns:
+            A Distogram object.
+        '''
         self.bin_count = bin_count
         self.bins = []
+
+
+def _linspace(start, stop, num):
+    if num == 1:
+        return stop
+    h = (stop - start) / float(num)
+    values = [start + h * i for i in range(num+1)]
+    return values
+
+
+def _moment(x, counts, c, n):
+    m = []
+    for i in range(len(x)):
+        m.append(counts[i]*(x[i]-c)**n)
+    return sum(m) / sum(counts)
 
 
 def trim(h):
@@ -39,7 +55,8 @@ def trim(h):
             prev_value = value[0]
 
         bins[i] = (
-            (bins[i][0]*bins[i][1] + bins[i+1][0]*bins[i+1][1]) / (bins[i][1] + bins[i+1][1]),
+            (bins[i][0]*bins[i][1] + bins[i+1][0]*bins[i+1][1])
+            / (bins[i][1] + bins[i+1][1]),
             bins[i][1] + bins[i+1][1]
         )
         del bins[i+1]
@@ -49,6 +66,16 @@ def trim(h):
 
 
 def update(h, value, count=1):
+    '''Adds a new element to the distribution.
+
+    Args:
+        h: A Distogram object.
+        value: The value to add on the histogram.
+        count: [Optional] The number of times that value must be added.
+
+    Returns:
+        A Distogram object where value as been processed.
+    '''
     bins = h.bins
     for index, bin in enumerate(bins):
         if bin[0] == value:
@@ -64,20 +91,42 @@ def update(h, value, count=1):
 
 
 def merge(h1, h2):
+    '''Merges two Distogram objects
+
+    Args:
+        h1: First Distogram.
+        h2: Second Distogram.
+
+    Returns:
+        A Distogram object being the composition of h1 and h2. The number of
+        bins in this Distogram is equal to the number of bins in h1.
+    '''
     h = h1
     for i in h2:
         h = update(h, i[0], i[1])
     return h
 
 
-def sum(h, value):
+def count_at(h, value):
+    '''Counts the number of elements present in the distribution up to value.
+
+    Args:
+        h: A Distogram object.
+        value: The value up to what elements must be counted.
+
+    Returns:
+        An estimation of the real count, computed from the compressed
+        representation of the distribution.
+    '''
     bins = h.bins
     i = -1
     while value > bins[i+1][0] and i < len(bins) - 1:
         i += 1
 
-    mb = bins[i][1] + (bins[i+1][1] - bins[i][1]) / (bins[i+1][0] - bins[i][0]) * (value - bins[i][0])
-    s = (bins[i][1] + mb) / 2 * (value - bins[i][0]) / (bins[i+1][0] - bins[i][0])
+    mb = bins[i][1] + (bins[i+1][1] - bins[i][1]) \
+        / (bins[i+1][0] - bins[i][0]) * (value - bins[i][0])
+    s = (bins[i][1] + mb) / 2 * (value - bins[i][0]) \
+        / (bins[i+1][0] - bins[i][0])
     for j in range(i):
         s = s + bins[j][1]
 
@@ -86,36 +135,109 @@ def sum(h, value):
 
 
 def count(h):
-    '''Returns the number of items in the histogram
-    '''
-    sum = 0
-    for i in h.bins:
-        sum += i[1]
+    '''Counts the number of elements in the distribution.
 
-    return sum
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        The number of elements in the distribution.
+    '''
+    return reduce(lambda acc, i: acc + i[1], h.bins, 0)
+
+
+def bounds(h):
+    '''Returns the min and max values of the distribution.
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the minimum and maximum values of the distribution.
+    '''
+    return (h.bins[0][0], h.bins[-1][0])
+
+
+def mean(h):
+    '''Returns the mean of the distribution.
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the mean of the values in the distribution.
+    '''
+    p = [i[0] for i in h.bins]
+    m = [i[1] for i in h.bins]
+    return _moment(p, m, 0, 1)
+
+
+def variance(h):
+    '''Returns the variance of the distribution.
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the variance of the values in the distribution.
+    '''
+    p = [i[0] for i in h.bins]
+    m = [i[1] for i in h.bins]
+    return _moment(p, m, mean(h), 2)
+
+
+def stddev(h):
+    '''Returns the standard deviation of the distribution.
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the standard deviation of the values in the
+        distribution.
+    '''
+    return math.sqrt(variance(h))
+
+
+def histogram(h, ucount=100):
+    '''Returns a histogram of the distribution
+
+    Args:
+        h: A Distogram object.
+        ucount: [Optional] The number of bins in the histogram.
+
+    Returns:
+        An estimation of the histogram of the distribution.
+    '''
+    last = 0.0
+    u = []
+    bounds = _linspace(h.bins[0][0], h.bins[-1][0], num=ucount+1)
+    for e in bounds[1:-1]:
+        new = count_at(h, e)
+        u.append((e, new-last))
+        last = new
+    return u
 
 
 def quantile(h, value):
+    '''Returns a quantile of the distribution
+
+    Args:
+        h: A Distogram object.
+        value: The quantile to compute. Must be between 0 and 1
+
+    Returns:
+        An estimation of the quantile.
+    '''
     total_count = count(h)
     q_count = int(total_count * value)
-    print("total: {}, q: {}".format(total_count, q_count))
+    bins = h.bins
+    i = 0
+    mb = q_count - bins[0][1] / 2
+    while mb - (bins[i][1] + bins[i+1][1]) / 2 > 0 and i < len(bins) - 1:
+        mb -= (bins[i][1] + bins[i+1][1]) / 2
+        i += 1
 
-    # transpose histogram to compute quantile
-    pt = []
-    acc = 0
-    for i in h.bins:
-        acc += i[1]
-        pt.append(acc)
-
-    mt = []
-    prev = 0
-    for i in h.bins:
-        mt.append(i[0] - prev)
-        prev = i[0]
-
-    bins = [(pt[i], mt[i]) for i in range(len(mt))]
-    print(bins)
-    ht = Distogram(bin_count=h.bin_count)
-    ht.bins = bins
-    q = sum(ht, q_count+1)
-    return q
+    ratio = mb / ((bins[i][1] + bins[i+1][1]) / 2)
+    value = bins[i][0] + (ratio * (bins[i+1][0] - bins[i][0]))
+    return value
