@@ -8,3 +8,4 @@ dist
 .eggs
 .DS_Store
 .pytest_cache
+.ipynb*
