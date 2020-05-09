@@ -25,4 +25,4 @@ def test_count_at_normal():
     for i in normal:
         distogram.update(h, i)
 
-    assert distogram.count_at(h, 0) == approx(points/2, rel=0.02)
+    assert distogram.count_at(h, 0) == approx(points/2, rel=0.025)
