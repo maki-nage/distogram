@@ -32,9 +32,9 @@ First create a compressed representation of a distribution:
     import distogram
 
     distribution = np.random.normal(size=10000)
-    #distribution = np.random.uniform(size=10000)
 
     # Create and feed distogram from distribution
+    # on a real usage, data comes from an event stream
     h = distogram.Distogram()
     for i in distribution:
         distogram.update(h, i)
