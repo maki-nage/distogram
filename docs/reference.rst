@@ -4,4 +4,5 @@ Reference
 ==========
 
 .. automodule:: distogram
-    :members: Distogram, sum
+    :members: Distogram, update, merge, count_at, count, bounds, mean,
+              variance, stddev, histogram, quantile
