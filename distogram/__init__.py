@@ -12,7 +12,7 @@ class Distogram(object):
     '''
     __slots__ = 'bin_count', 'bins'
 
-    def __init__(self, bin_count=200):
+    def __init__(self, bin_count=100):
         '''Creates a new Distogram object
 
         Args:
