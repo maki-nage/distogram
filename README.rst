@@ -34,8 +34,7 @@ First create a compressed representation of a distribution:
 
 .. code:: python
 
-    import math
-    import random
+    import numpy as np
     import distogram
 
     distribution = np.random.normal(size=10000)
