@@ -40,7 +40,7 @@ First create a compressed representation of a distribution:
     # on a real usage, data comes from an event stream
     h = distogram.Distogram()
     for i in distribution:
-        distogram.update(h, i)
+        h = distogram.update(h, i)
 
 
 Compute statistics on the distribution:
