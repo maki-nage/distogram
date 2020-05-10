@@ -14,6 +14,9 @@ DistoGram
     :target: https://distogram.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://mybinder.org/badge_logo.svg
+    :target: https://mybinder.org/v2/gh/maki-nage/distogram/master?urlpath=notebooks%2Fexamples%2Fdistogram.ipynb
+
 
 DistoGram is a library that allows to compute histogram on streaming data, in
 distributed environments. The implementation follows the algorithms described in
