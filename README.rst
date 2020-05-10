@@ -10,7 +10,7 @@ DistoGram
     :target: https://github.com/maki-nage/distogram/actions?query=workflow%3A%22Python+package%22
     :alt: Github WorkFlows
 
-.. image:: https://img.shields.io/codecov/c/github/maki-nage/distogram?color=brightgreen&logo=codecov&style=for-the-badge
+.. image:: https://img.shields.io/codecov/c/github/maki-nage/distogram?style=plastic&color=brightgreen&logo=codecov&style=for-the-badge
     :target: https://codecov.io/gh/maki-nage/distogram
     :alt: Coverage
 
