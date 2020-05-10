@@ -24,7 +24,7 @@ def test_count_at_normal():
     h = distogram.Distogram()
 
     for i in normal:
-        distogram.update(h, i)
+        h = distogram.update(h, i)
 
     assert distogram.count_at(h, 0) == approx(points/2, rel=0.025)
 
@@ -37,4 +37,4 @@ def test_count_at_not_enough_elements():
     h = distogram.update(h, 3)
 
     with pytest.raises(ValueError):
-        distogram.count_at(h, 2.5)
+        h = distogram.count_at(h, 2.5)

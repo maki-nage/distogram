@@ -7,7 +7,7 @@ def test_bounds():
     h = distogram.Distogram()
 
     for i in normal:
-        distogram.update(h, i)
+        h = distogram.update(h, i)
 
     dmin, dmax = distogram.bounds(h)
     assert dmin == min(normal)

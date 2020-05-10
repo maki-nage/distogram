@@ -31,7 +31,7 @@ def test_normal():
     h = distogram.Distogram(bin_count=64)
 
     for i in normal:
-        distogram.update(h, i)
+        h = distogram.update(h, i)
 
     assert distogram.quantile(h, 0.5) == approx(np.quantile(normal, 0.5), abs=0.2)
     assert distogram.quantile(h, 0.95) == approx(np.quantile(normal, 0.95), abs=0.2)
