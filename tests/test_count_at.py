@@ -1,3 +1,4 @@
+import pytest
 from pytest import approx
 import random
 import distogram
@@ -26,3 +27,14 @@ def test_count_at_normal():
         distogram.update(h, i)
 
     assert distogram.count_at(h, 0) == approx(points/2, rel=0.025)
+
+
+def test_count_at_not_enough_elements():
+    h = distogram.Distogram()
+
+    h = distogram.update(h, 1)
+    h = distogram.update(h, 2)
+    h = distogram.update(h, 3)
+
+    with pytest.raises(ValueError):
+        distogram.count_at(h, 2.5)

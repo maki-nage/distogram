@@ -1,3 +1,4 @@
+import pytest
 from pytest import approx
 import distogram
 
@@ -7,15 +8,25 @@ import random
 
 def test_quantile():
     h = distogram.Distogram(bin_count=3)
-    h.bins=[
-        (16, 4), (23, 3), (28, 5)
-    ]
+    h = distogram.update(h, 16, count=4)
+    h = distogram.update(h, 23, count=3)
+    h = distogram.update(h, 28, count=5)
 
     assert distogram.quantile(h, 0.5) == approx(23.625)
 
 
-def test_normal():    
-    #normal = np.random.normal(0,1, 1000)
+def test_quantile_not_enough_elemnts():
+    h = distogram.Distogram(bin_count=3)
+
+    h = distogram.update(h, 16, count=4)
+    h = distogram.update(h, 23, count=3)
+
+    with pytest.raises(ValueError):
+        assert distogram.quantile(h, 0.5) == approx(23.625)
+
+
+def test_normal():
+    # normal = np.random.normal(0,1, 1000)
     normal = [random.normalvariate(0.0, 1.0) for _ in range(10000)]
     h = distogram.Distogram(bin_count=64)
 

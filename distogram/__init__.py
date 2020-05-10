@@ -122,7 +122,14 @@ def count_at(h, value):
     Returns:
         An estimation of the real count, computed from the compressed
         representation of the distribution.
+
+    Raises:
+        ValueError if distribution contains less elements than the number of
+        bins in the Distogram object.
     '''
+    if len(h.bins) < h.bin_count:
+        raise ValueError("not enough elements in distribution")
+
     bins = h.bins
     i = -1
     while value > bins[i+1][0] and i < len(bins) - 1:
@@ -213,7 +220,14 @@ def histogram(h, ucount=100):
 
     Returns:
         An estimation of the histogram of the distribution.
+
+    Raises:
+        ValueError if distribution contains less elements than the number of
+        bins in the Distogram object.
     '''
+    if len(h.bins) < h.bin_count:
+        raise ValueError("not enough elements in distribution")
+
     last = 0.0
     u = []
     bounds = _linspace(h.min, h.max, num=ucount+1)
@@ -233,7 +247,14 @@ def quantile(h, value):
 
     Returns:
         An estimation of the quantile.
+
+    Raises:
+        ValueError if distribution contains less elements than the number of
+        bins in the Distogram object.
     '''
+    if len(h.bins) < h.bin_count:
+        raise ValueError("not enough elements in distribution")
+
     total_count = count(h)
     q_count = int(total_count * value)
     bins = h.bins

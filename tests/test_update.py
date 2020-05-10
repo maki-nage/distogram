@@ -1,6 +1,7 @@
 from pytest import approx
 import distogram
 
+
 def test_update():
     h = distogram.Distogram(bin_count=3)
     print(h)
