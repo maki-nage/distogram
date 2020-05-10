@@ -10,7 +10,7 @@ __version__ = '1.0.0'
 class Distogram(object):
     '''Compressed representation of the histogram of a distribution
     '''
-    __slots__ = 'bin_count', 'bins'
+    __slots__ = 'bin_count', 'bins', 'min', 'max'
 
     def __init__(self, bin_count=100):
         '''Creates a new Distogram object
@@ -23,6 +23,8 @@ class Distogram(object):
         '''
         self.bin_count = bin_count
         self.bins = []
+        self.min = None
+        self.max = None
 
 
 def _linspace(start, stop, num):
@@ -79,7 +81,6 @@ def update(h, value, count=1):
     bins = h.bins
     for index, bin in enumerate(bins):
         if bin[0] == value:
-            print("same: {}, {}".format(bin[0], value))
             bin = (bin[0], bin[1]+count)
             h.bins[index] = bin
             return h
@@ -87,6 +88,10 @@ def update(h, value, count=1):
     bins.append((value, count))
     bins = sorted(bins, key=lambda i: i[0])
     h.bins = bins
+    if h.min is None or h.min > value:
+        h.min = value
+    if h.max is None or h.max < value:
+        h.max = value
     return trim(h)
 
 
@@ -153,9 +158,9 @@ def bounds(h):
         h: A Distogram object.
 
     Returns:
-        An estimation of the minimum and maximum values of the distribution.
+        A tuple containing the minimum and maximum values of the distribution.
     '''
-    return (h.bins[0][0], h.bins[-1][0])
+    return (h.min, h.max)
 
 
 def mean(h):
@@ -211,7 +216,7 @@ def histogram(h, ucount=100):
     '''
     last = 0.0
     u = []
-    bounds = _linspace(h.bins[0][0], h.bins[-1][0], num=ucount+1)
+    bounds = _linspace(h.min, h.max, num=ucount+1)
     for e in bounds[1:-1]:
         new = count_at(h, e)
         u.append((e, new-last))
