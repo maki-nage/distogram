@@ -26,7 +26,7 @@ def test_count_at_normal():
     for i in normal:
         h = distogram.update(h, i)
 
-    assert distogram.count_at(h, 0) == approx(points/2, rel=0.025)
+    assert distogram.count_at(h, 0) == approx(points/2, rel=0.05)
 
 
 def test_count_at_not_enough_elements():
@@ -36,5 +36,38 @@ def test_count_at_not_enough_elements():
     h = distogram.update(h, 2)
     h = distogram.update(h, 3)
 
-    with pytest.raises(ValueError):
-        h = distogram.count_at(h, 2.5)
+    assert distogram.count_at(h, 2.5) == 2
+
+
+def test_count_at_left():
+    h = distogram.Distogram(bin_count=6)
+
+    for i in [1, 2, 3, 4, 5, 6, 0.7, 1.1]:
+        h = distogram.update(h, i)
+
+    assert distogram.count_at(h, 0.77) == approx(0.14)
+
+
+def test_count_at_right():
+    h = distogram.Distogram(bin_count=6)
+
+    for i in [1, 2, 3, 4, 5, 6, 6.7, 6.1]:
+        h = distogram.update(h, i)
+
+    assert distogram.count_at(h, 6.5) == approx(7.307692307692308)
+
+
+def test_count_at_empty():
+    h = distogram.Distogram()
+
+    assert distogram.count_at(h, 6.5) is None
+
+
+def test_count_at_out_of_bouns():
+    h = distogram.Distogram()
+
+    for i in [1, 2, 3, 4, 5, 6, 6.7, 6.1]:
+        h = distogram.update(h, i)
+
+    assert distogram.count_at(h, 0.2) is None
+    assert distogram.count_at(h, 10) is None

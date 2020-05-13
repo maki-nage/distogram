@@ -121,28 +121,39 @@ def count_at(h, value):
 
     Returns:
         An estimation of the real count, computed from the compressed
-        representation of the distribution.
-
-    Raises:
-        ValueError if distribution contains less elements than the number of
-        bins in the Distogram object.
+        representation of the distribution. Returns None if the Distogram
+        object contains no element or value is outside of the distribution
+        bounds.
     '''
-    if len(h.bins) < h.bin_count:
-        raise ValueError("not enough elements in distribution")
+    if len(h.bins) == 0:
+        return None
+
+    if value < h.min or value > h.max:
+        return None
 
     bins = h.bins
-    i = -1
-    while value > bins[i+1][0] and i < len(bins) - 1:
-        i += 1
+    if value <= bins[0][0]:  # left
+        ratio = (value - h.min) / (bins[0][0] - h.min)
+        s = ratio * bins[0][0] / 2
+    elif value >= bins[-1][0]:  # right
+        ratio = (value - bins[-1][0]) / (h.max - bins[-1][0])
+        s = ratio * (bins[-1][1]) / 2
+        s += bins[-1][1] / 2
+        for j in range(len(bins) - 1):
+            s += bins[j][1]
+    else:
+        i = -1
+        while value > bins[i+1][0] and i < len(bins) - 1:
+            i += 1
 
-    mb = bins[i][1] + (bins[i+1][1] - bins[i][1]) \
-        / (bins[i+1][0] - bins[i][0]) * (value - bins[i][0])
-    s = (bins[i][1] + mb) / 2 * (value - bins[i][0]) \
-        / (bins[i+1][0] - bins[i][0])
-    for j in range(i):
-        s = s + bins[j][1]
+        mb = bins[i][1] + (bins[i+1][1] - bins[i][1]) \
+            / (bins[i+1][0] - bins[i][0]) * (value - bins[i][0])
+        s = (bins[i][1] + mb) / 2 * (value - bins[i][0]) \
+            / (bins[i+1][0] - bins[i][0])
+        for j in range(i):
+            s = s + bins[j][1]
 
-    s = s + bins[i][1] / 2
+        s = s + bins[i][1] / 2
     return s
 
 
@@ -246,24 +257,32 @@ def quantile(h, value):
         value: The quantile to compute. Must be between 0 and 1
 
     Returns:
-        An estimation of the quantile.
-
-    Raises:
-        ValueError if distribution contains less elements than the number of
-        bins in the Distogram object.
+        An estimation of the quantile. Returns None if the Distogram
+        object contains no element or value is outside of [0:1].
     '''
-    if len(h.bins) < h.bin_count:
-        raise ValueError("not enough elements in distribution")
+    if len(h.bins) == 0:
+        return None
+
+    if value < 0.0 or value > 1.0:
+        return None
 
     total_count = count(h)
     q_count = int(total_count * value)
     bins = h.bins
     i = 0
-    mb = q_count - bins[0][1] / 2
-    while mb - (bins[i][1] + bins[i+1][1]) / 2 > 0 and i < len(bins) - 1:
-        mb -= (bins[i][1] + bins[i+1][1]) / 2
-        i += 1
+    if q_count <= (bins[0][1] / 2):  # left values
+        ratio = q_count / (h.min + bins[0][1] / 2)
+        value = h.min + (ratio * (bins[0][0] - h.min))
+    elif q_count >= (total_count - (bins[-1][1] / 2)):  # right values
+        mb = q_count - (total_count - (bins[-1][1] / 2))
+        ratio = q_count / (h.max + bins[-1][1] / 2)
+        value = bins[-1][0] + (ratio * (h.max - bins[-1][0]))
+    else:
+        mb = q_count - bins[0][1] / 2
+        while mb - (bins[i][1] + bins[i+1][1]) / 2 > 0 and i < len(bins) - 1:
+            mb -= (bins[i][1] + bins[i+1][1]) / 2
+            i += 1
 
-    ratio = mb / ((bins[i][1] + bins[i+1][1]) / 2)
-    value = bins[i][0] + (ratio * (bins[i+1][0] - bins[i][0]))
+        ratio = mb / ((bins[i][1] + bins[i+1][1]) / 2)
+        value = bins[i][0] + (ratio * (bins[i+1][0] - bins[i][0]))
     return value
