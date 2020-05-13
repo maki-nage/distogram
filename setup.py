@@ -23,7 +23,7 @@ install_requires = [
 
 setup(
     name="distogram",
-    version='1.1.0',
+    version='1.2.0',
     url='https://github.com/maki-nage/distogram.git',
     license='MIT',
     description="A library to compute histograms on distributed environments, on streaming data",
