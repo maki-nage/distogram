@@ -103,5 +103,5 @@ DistoGram is available on PyPi and can be installed with pip:
 Play With Me
 ============
 
-You can test this library direclty on this
+You can test this library directly on this
 `live notebook <https://mybinder.org/v2/gh/maki-nage/distogram/master?urlpath=notebooks%2Fexamples%2Fdistogram.ipynb>`__.
