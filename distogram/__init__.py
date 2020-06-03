@@ -10,7 +10,7 @@ __version__ = '1.2.0'
 class Distogram(object):
     '''Compressed representation of the histogram of a distribution
     '''
-    __slots__ = 'bin_count', 'bins', 'min', 'max'
+    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs'
 
     def __init__(self, bin_count=100):
         '''Creates a new Distogram object
@@ -25,6 +25,7 @@ class Distogram(object):
         self.bins = []
         self.min = None
         self.max = None
+        self.diffs = None
 
 
 def _linspace(start, stop, num):
@@ -42,7 +43,7 @@ def _moment(x, counts, c, n):
     return sum(m) / sum(counts)
 
 
-def trim(h):
+def _trim(h):
     bins = h.bins
     while len(bins) > h.bin_count:
         min_diff = None
@@ -62,9 +63,70 @@ def trim(h):
             bins[i][1] + bins[i+1][1]
         )
         del bins[i+1]
+        h.diffs = None
 
     h.bins = bins
     return h
+
+
+def _trim_in_place(h, value, count, i):
+    bins = h.bins
+
+    bins[i] = (
+        (bins[i][0]*bins[i][1] + value*count)
+        / (bins[i][1] + count),
+        bins[i][1] + count
+    )
+
+    h.bins = bins
+    if h.diffs is not None:
+        if i > 0:
+            h.diffs[i-1] = h.bins[i][0] - h.bins[i-1][0]
+        if i < len(h.bins) - 1:
+            h.diffs[i] = h.bins[i+1][0] - h.bins[i][0]
+    return h
+
+
+def _compute_diffs(h):
+    diffs = []
+    bins = h.bins
+    for index in range(1, len(bins)):
+        diff = bins[index][0] - bins[index-1][0]
+        diffs.append(diff)
+
+    return diffs
+
+
+def _compute_min_distance(h, new_value):
+    bins = h.bins
+    if len(bins) < h.bin_count:
+        return None, False
+
+    if h.diffs is None:
+        h.diffs = _compute_diffs(h)
+
+    min_diff = min(h.diffs)
+    i_bin = None
+
+    for index in range(1, len(bins)):
+        prev_value = bins[index-1][0]
+        value = bins[index][0]
+        if new_value > prev_value and new_value < value:
+            diff1 = new_value - prev_value
+            diff2 = value - new_value
+            if diff1 < diff2:
+                diff = diff1
+                i_bin = index-1
+            else:
+                diff = diff2
+                i_bin = index
+
+            if diff < min_diff:
+                return i_bin, True
+            else:
+                return None, False
+
+    return None, False
 
 
 def update(h, value, count=1):
@@ -78,21 +140,26 @@ def update(h, value, count=1):
     Returns:
         A Distogram object where value as been processed.
     '''
-    bins = h.bins
-    for index, bin in enumerate(bins):
-        if bin[0] == value:
-            bin = (bin[0], bin[1]+count)
-            h.bins[index] = bin
-            return h
+    min_bin_index, min_is_new_value = _compute_min_distance(h, value)
+    #min_is_new_value = False
+    if min_is_new_value is True:
+        h = _trim_in_place(h, value, count, min_bin_index)
+    else:
+        bins = h.bins
+        for index, bin in enumerate(bins):
+            if bin[0] == value:
+                bin = (bin[0], bin[1]+count)
+                h.bins[index] = bin
+                return h
 
-    bins.append((value, count))
-    bins = sorted(bins, key=lambda i: i[0])
-    h.bins = bins
+        bins.append((value, count))
+        bins = sorted(bins, key=lambda i: i[0])
+        h.bins = bins
     if h.min is None or h.min > value:
         h.min = value
     if h.max is None or h.max < value:
         h.max = value
-    return trim(h)
+    return _trim(h)
 
 
 def merge(h1, h2):
