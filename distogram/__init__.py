@@ -3,7 +3,7 @@ from functools import reduce
 
 __author__ = """Romain Picard"""
 __email__ = 'romain.picard@oakbits.com'
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 
 
 # bins is a tuple of (cut point, count)
