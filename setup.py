@@ -36,7 +36,7 @@ setup(
     tests_require=['pytest>=5.0.1'],
     platforms='any',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3',
