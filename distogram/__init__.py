@@ -97,9 +97,19 @@ def _compute_diffs(h):
     return diffs
 
 
+def _bisect_left(a, x):
+    lo = 0
+    hi = len(a)
+    while lo < hi:
+        mid = (lo+hi)//2
+        if a[mid][0] < x: lo = mid+1
+        else: hi = mid
+    return lo
+
+
 def _compute_min_distance(h, new_value):
     bins = h.bins
-    if len(bins) < h.bin_count:
+    if len(bins) < h.bin_count or new_value <= bins[0][0] or new_value >= bins[-1][0]:
         return None, False
 
     if h.diffs is None:
@@ -108,24 +118,23 @@ def _compute_min_distance(h, new_value):
     min_diff = min(h.diffs)
     i_bin = None
 
-    for index in range(1, len(bins)):
+    index = _bisect_left(bins, new_value)
+    if index > 0:
         prev_value = bins[index-1][0]
         value = bins[index][0]
-        if new_value > prev_value and new_value < value:
-            diff1 = new_value - prev_value
-            diff2 = value - new_value
-            if diff1 < diff2:
-                diff = diff1
-                i_bin = index-1
-            else:
-                diff = diff2
-                i_bin = index
+        diff1 = new_value - prev_value
+        diff2 = value - new_value
+        if diff1 < diff2:
+            diff = diff1
+            i_bin = index-1
+        else:
+            diff = diff2
+            i_bin = index
 
-            if diff < min_diff:
-                return i_bin, True
-            else:
-                return None, False
-
+        if diff < min_diff:
+            return i_bin, True
+        else:
+            return None, False
     return None, False
 
 
