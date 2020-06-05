@@ -105,3 +105,10 @@ Play With Me
 
 You can test this library directly on this
 `live notebook <https://mybinder.org/v2/gh/maki-nage/distogram/master?urlpath=notebooks%2Fexamples%2Fdistogram.ipynb>`__.
+
+Credits
+========
+
+Although this code has been written by following the aforementioned research
+paper, some parts are also inspired by the implementation from
+`Carson Farmer <https://github.com/carsonfarmer/streamhist>`__.

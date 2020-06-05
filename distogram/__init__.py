@@ -8,7 +8,7 @@ __version__ = '1.4.0'
 
 # bins is a tuple of (cut point, count)
 class Distogram(object):
-    '''Compressed representation of the histogram of a distribution
+    '''Compressed representation of a distribution
     '''
     __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs'
 
