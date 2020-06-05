@@ -43,6 +43,14 @@ def _moment(x, counts, c, n):
     return sum(m) / sum(counts)
 
 
+def _update_diffs(h, i):
+    if h.diffs is not None:
+        if i > 0:
+            h.diffs[i-1] = h.bins[i][0] - h.bins[i-1][0]
+        if i < len(h.bins) - 1:
+            h.diffs[i] = h.bins[i+1][0] - h.bins[i][0]
+
+
 def _trim(h):
     bins = h.bins
     while len(bins) > h.bin_count:
@@ -63,7 +71,7 @@ def _trim(h):
             bins[i][1] + bins[i+1][1]
         )
         del bins[i+1]
-        h.diffs = None
+        _update_diffs(h, i)
 
     h.bins = bins
     return h
@@ -79,11 +87,7 @@ def _trim_in_place(h, value, count, i):
     )
 
     h.bins = bins
-    if h.diffs is not None:
-        if i > 0:
-            h.diffs[i-1] = h.bins[i][0] - h.bins[i-1][0]
-        if i < len(h.bins) - 1:
-            h.diffs[i] = h.bins[i+1][0] - h.bins[i][0]
+    _update_diffs(h, i)
     return h
 
 
@@ -107,10 +111,8 @@ def _bisect_left(a, x):
     return lo
 
 
-def _compute_min_distance(h, new_value):
+def _search_in_place_index(h, new_value, index):
     bins = h.bins
-    if len(bins) < h.bin_count or new_value <= bins[0][0] or new_value >= bins[-1][0]:
-        return None, False
 
     if h.diffs is None:
         h.diffs = _compute_diffs(h)
@@ -118,7 +120,6 @@ def _compute_min_distance(h, new_value):
     min_diff = min(h.diffs)
     i_bin = None
 
-    index = _bisect_left(bins, new_value)
     if index > 0:
         prev_value = bins[index-1][0]
         value = bins[index][0]
@@ -132,10 +133,10 @@ def _compute_min_distance(h, new_value):
             i_bin = index
 
         if diff < min_diff:
-            return i_bin, True
+            return i_bin
         else:
-            return None, False
-    return None, False
+            return -1
+    return -1
 
 
 def update(h, value, count=1):
@@ -149,21 +150,34 @@ def update(h, value, count=1):
     Returns:
         A Distogram object where value as been processed.
     '''
-    min_bin_index, min_is_new_value = _compute_min_distance(h, value)
-    #min_is_new_value = False
-    if min_is_new_value is True:
-        h = _trim_in_place(h, value, count, min_bin_index)
-    else:
-        bins = h.bins
-        for index, bin in enumerate(bins):
-            if bin[0] == value:
-                bin = (bin[0], bin[1]+count)
-                h.bins[index] = bin
-                return h
+    bins = h.bins
+    index = 0
+    if len(bins) > 0:
+        if value <= bins[0][0]:
+            index = 0
+        elif value >= bins[-1][0]:
+            index = -1
+        else:
+            index = _bisect_left(bins, value)
 
+    if index > 0 and len(bins) >= h.bin_count:
+        in_place_index = _search_in_place_index(h, value, index)
+        if in_place_index > 0:
+            h = _trim_in_place(h, value, count, in_place_index)
+            return h
+
+    if len(bins) > 0:
+        bin = bins[index]
+        if bin[0] == value:
+            bin = (bin[0], bin[1]+count)
+            h.bins[index] = bin
+            return h
+
+    if index == -1:
         bins.append((value, count))
-        bins = sorted(bins, key=lambda i: i[0])
-        h.bins = bins
+    else:
+        bins.insert(index, (value, count))
+    h.bins = bins
     if h.min is None or h.min > value:
         h.min = value
     if h.max is None or h.max < value:
