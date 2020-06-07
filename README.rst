@@ -106,6 +106,31 @@ Play With Me
 You can test this library directly on this
 `live notebook <https://mybinder.org/v2/gh/maki-nage/distogram/master?urlpath=notebooks%2Fexamples%2Fdistogram.ipynb>`__.
 
+
+Performances
+=============
+
+Distogram is design for fast updates when using python types. The following
+numbers show the results of the benchmark program located in the examples. It
+has been run on a modest 2014 13" macbook pro.
+
+============  ==========  =======  ==========
+Interpreter   Operation   Numpy         Req/s
+============  ==========  =======  ==========
+pypy 7.3      update      no          1290971
+pypy 7.3      update      yes           27775
+CPython 3.7   update      no            78809
+CPython 3.7   update      yes           56906
+
+============  ==========  =======  ==========
+
+As you can see, your are encouraged to use pypy with python native types.
+Pypy's jit is penalised by numpy native types, causing a huge performance
+hit. Moreover the streaming phylosophy of Distogram is more adapted to
+python native types where numpy is optimized for batch computations, even with
+CPython.
+
+
 Credits
 ========
 
