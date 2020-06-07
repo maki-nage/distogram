@@ -205,7 +205,7 @@ def merge(h1, h2):
         bins in this Distogram is equal to the number of bins in h1.
     '''
     h = h1
-    for i in h2:
+    for i in h2.bins:
         h = update(h, i[0], i[1])
     return h
 
