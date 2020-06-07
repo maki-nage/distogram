@@ -121,7 +121,6 @@ pypy 7.3      update      no          1290971
 pypy 7.3      update      yes           27775
 CPython 3.7   update      no            78809
 CPython 3.7   update      yes           56906
-
 ============  ==========  =======  ==========
 
 As you can see, your are encouraged to use pypy with python native types.
