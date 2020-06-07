@@ -71,7 +71,9 @@ def _trim(h):
             bins[i][1] + bins[i+1][1]
         )
         del bins[i+1]
-        _update_diffs(h, i)
+        if h.diffs is not None:
+            del h.diffs[i]
+            _update_diffs(h, i)
 
     h.bins = bins
     return h
@@ -175,8 +177,14 @@ def update(h, value, count=1):
 
     if index == -1:
         bins.append((value, count))
+        if h.diffs is not None:
+            h.diffs.append(h.bins[-1][0] - h.bins[-2][0])
     else:
         bins.insert(index, (value, count))
+        if h.diffs is not None:
+            h.diffs.insert(index, None)
+            _update_diffs(h, index)
+
     h.bins = bins
     if h.min is None or h.min > value:
         h.min = value
