@@ -108,7 +108,7 @@ def _compute_diffs(h):
 
 
 def _linear_index(bins, value):
-    ratio = (value - bins[0][0]) / (bins[-1][0] - bins[0][0])
+    ratio = float((value - bins[0][0]) / (bins[-1][0] - bins[0][0]))
     index = round(ratio * len(bins))
     if index > 0 and index < (len(bins) - 1):
         if value > bins[index][0] and value < bins[index+1][0]:
