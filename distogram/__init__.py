@@ -51,19 +51,23 @@ def _update_diffs(h, i):
             h.diffs[i] = h.bins[i+1][0] - h.bins[i][0]
 
 
-def _trim(h):
+def _trim(h, index):
     bins = h.bins
     while len(bins) > h.bin_count:
-        min_diff = None
-        i = None
-        prev_value = 0
-        for index, value in enumerate(h.bins):
-            if index > 0:
-                diff = value[0] - prev_value
-                if min_diff is None or diff < min_diff:
-                    min_diff = diff
-                    i = index - 1
-            prev_value = value[0]
+        if h.diffs is not None:
+            min_diff = min(h.diffs)
+            i = h.diffs.index(min_diff)
+        else:
+            min_diff = None
+            i = None
+            prev_value = 0
+            for index, value in enumerate(h.bins):
+                if index > 0:
+                    diff = value[0] - prev_value
+                    if min_diff is None or diff < min_diff:
+                        min_diff = diff
+                        i = index - 1
+                prev_value = value[0]
 
         bins[i] = (
             (bins[i][0]*bins[i][1] + bins[i+1][0]*bins[i+1][1])
@@ -101,6 +105,18 @@ def _compute_diffs(h):
         diffs.append(diff)
 
     return diffs
+
+
+def _linear_index(bins, value):
+    ratio = (value - bins[0][0]) / (bins[-1][0] - bins[0][0])
+    index = round(ratio * len(bins))
+    if index > 0 and index < (len(bins) - 1):
+        if value > bins[index][0] and value < bins[index+1][0]:
+            return index+1
+        if value > bins[index-1][0] and value < bins[index][0]:
+            return index
+
+    return 0
 
 
 def _bisect_left(a, x):
@@ -160,7 +176,10 @@ def update(h, value, count=1):
         elif value >= bins[-1][0]:
             index = -1
         else:
-            index = _bisect_left(bins, value)
+            if len(bins) >= h.bin_count:
+                index = _linear_index(bins, value)
+            if index == 0:
+                index = _bisect_left(bins, value)
 
     if index > 0 and len(bins) >= h.bin_count:
         in_place_index = _search_in_place_index(h, value, index)
@@ -190,7 +209,7 @@ def update(h, value, count=1):
         h.min = value
     if h.max is None or h.max < value:
         h.max = value
-    return _trim(h)
+    return _trim(h, index)
 
 
 def merge(h1, h2):
