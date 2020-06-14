@@ -10,7 +10,7 @@ __version__ = '1.5.1'
 class Distogram(object):
     '''Compressed representation of a distribution
     '''
-    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs'
+    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff'
 
     def __init__(self, bin_count=100):
         '''Creates a new Distogram object
@@ -26,6 +26,7 @@ class Distogram(object):
         self.min = None
         self.max = None
         self.diffs = None
+        self.min_diff = None
 
 
 def _linspace(start, stop, num):
@@ -46,16 +47,30 @@ def _moment(x, counts, c, n):
 def _update_diffs(h, i):
     if h.diffs is not None:
         if i > 0:
-            h.diffs[i-1] = h.bins[i][0] - h.bins[i-1][0]
+            diff = h.bins[i][0] - h.bins[i-1][0]
+            if h.diffs[i-1] == h.min_diff:
+                h.diffs[i-1] = diff
+                h.min_diff = min(h.diffs)
+            else:
+                h.diffs[i-1] = diff
+                if h.diffs[i-1] < h.min_diff:
+                    h.min_diff = h.diffs[i-1]
         if i < len(h.bins) - 1:
-            h.diffs[i] = h.bins[i+1][0] - h.bins[i][0]
+            diff = h.bins[i+1][0] - h.bins[i][0]
+            if h.diffs[i] == h.min_diff:
+                h.diffs[i] = diff
+                h.min_diff = min(h.diffs)
+            else:
+                h.diffs[i] = diff
+                if h.diffs[i] < h.min_diff:
+                    h.min_diff = h.diffs[i]
 
 
 def _trim(h, index):
     bins = h.bins
     while len(bins) > h.bin_count:
         if h.diffs is not None:
-            min_diff = min(h.diffs)
+            min_diff = h.min_diff
             i = h.diffs.index(min_diff)
         else:
             min_diff = None
@@ -78,6 +93,7 @@ def _trim(h, index):
         if h.diffs is not None:
             del h.diffs[i]
             _update_diffs(h, i)
+            h.min_diff = min(h.diffs)
 
     h.bins = bins
     return h
@@ -100,9 +116,12 @@ def _trim_in_place(h, value, count, i):
 def _compute_diffs(h):
     diffs = []
     bins = h.bins
+    h.min_diff = h.max
     for index in range(1, len(bins)):
         diff = bins[index][0] - bins[index-1][0]
         diffs.append(diff)
+        if diff < h.min_diff:
+            h.min_diff = diff
 
     return diffs
 
@@ -135,7 +154,7 @@ def _search_in_place_index(h, new_value, index):
     if h.diffs is None:
         h.diffs = _compute_diffs(h)
 
-    min_diff = min(h.diffs)
+    min_diff = h.min_diff
     i_bin = None
 
     if index > 0:
@@ -197,7 +216,10 @@ def update(h, value, count=1):
     if index == -1:
         bins.append((value, count))
         if h.diffs is not None:
-            h.diffs.append(h.bins[-1][0] - h.bins[-2][0])
+            diff = h.bins[-1][0] - h.bins[-2][0]
+            h.diffs.append(diff)
+            if diff < h.min_diff:
+                h.min_diff = diff
     else:
         bins.insert(index, (value, count))
         if h.diffs is not None:
