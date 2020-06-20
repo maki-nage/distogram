@@ -111,23 +111,34 @@ Performances
 =============
 
 Distogram is design for fast updates when using python types. The following
-numbers show the results of the benchmark program located in the examples. It
-has been run on a modest 2014 13" macbook pro.
+numbers show the results of the benchmark program located in the examples. 
+
+On a i7-9800X Intel CPU, performances are:
 
 ============  ==========  =======  ==========
 Interpreter   Operation   Numpy         Req/s
 ============  ==========  =======  ==========
-pypy 7.3      update      no          1290971
-pypy 7.3      update      yes           27775
-CPython 3.7   update      no            78809
-CPython 3.7   update      yes           56906
+pypy 7.3      update      no          6563311
+pypy 7.3      update      yes          114262
+CPython 3.7   update      no            65763
+CPython 3.7   update      yes           39277
 ============  ==========  =======  ==========
 
-As you can see, your are encouraged to use pypy with python native types.
-Pypy's jit is penalised by numpy native types, causing a huge performance
-hit. Moreover the streaming phylosophy of Distogram is more adapted to
-python native types where numpy is optimized for batch computations, even with
-CPython.
+On a modest 2014 13" macbook pro, performances are:
+
+============  ==========  =======  ==========
+Interpreter   Operation   Numpy         Req/s
+============  ==========  =======  ==========
+pypy 7.3      update      no          3114940
+pypy 7.3      update      yes           38687
+CPython 3.7   update      no           107345
+CPython 3.7   update      yes           71843
+============  ==========  =======  ==========
+
+As you can see, your are encouraged to use pypy with python native types. Pypy's
+jit is penalised by numpy native types, causing a huge performance hit. Moreover
+the streaming phylosophy of Distogram is more adapted to python native types
+while numpy is optimized for batch computations, even with CPython.
 
 
 Credits
