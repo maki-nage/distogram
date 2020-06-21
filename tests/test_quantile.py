@@ -27,21 +27,24 @@ def test_quantile_not_enough_elemnts():
 def test_quantile_on_left():
     h = distogram.Distogram(bin_count=6)
 
-    for i in [12.3, 5.2, 5.4, 4.9, 5.5, 5.6, 8.2, 100.53, 23.5, 13.98]:
+    data = [12.3, 5.2, 5.4, 4.9, 5.5, 5.6, 8.2, 30.53, 23.5, 13.98]
+    for i in data:
         h = distogram.update(h, i)
 
-    assert distogram.quantile(h, 0.05) == approx(4.9)
-    assert distogram.quantile(h, 0.25) == approx(5.013513513513514)
+    assert distogram.quantile(h, 0.01) == approx(np.quantile(data, 0.01), rel=0.01)
+    assert distogram.quantile(h, 0.05) == approx(np.quantile(data, 0.05), rel=0.05)
+    assert distogram.quantile(h, 0.25) == approx(np.quantile(data, 0.25), rel=0.05)
 
 
 def test_quantile_on_right():
     h = distogram.Distogram(bin_count=6)
 
-    for i in [12.3, 8.2, 100.53, 23.5, 13.98, 200, 200.2, 200.8, 200.4, 200.1]:
+    data = [12.3, 8.2, 100.53, 23.5, 13.98, 200, 200.2, 200.8, 200.4, 200.1]
+    for i in data:
         h = distogram.update(h, i)
 
-    assert distogram.quantile(h, 0.99) == approx(200.32213477619283)
-    assert distogram.quantile(h, 0.85) == approx(200.31967535661585)
+    assert distogram.quantile(h, 0.99) == approx(np.quantile(data, 0.99), rel=0.01)
+    assert distogram.quantile(h, 0.85) == approx(np.quantile(data, 0.85), rel=0.01)
 
 
 def test_normal():

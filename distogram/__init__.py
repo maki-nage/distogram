@@ -10,9 +10,9 @@ __version__ = '1.5.1'
 class Distogram(object):
     '''Compressed representation of a distribution
     '''
-    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff'
+    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 'weighted_diff'
 
-    def __init__(self, bin_count=100):
+    def __init__(self, bin_count=100, weighted_diff=False):
         '''Creates a new Distogram object
 
         Args:
@@ -27,6 +27,7 @@ class Distogram(object):
         self.max = None
         self.diffs = None
         self.min_diff = None
+        self.weighted_diff = weighted_diff
 
 
 def _linspace(start, stop, num):
@@ -44,26 +45,37 @@ def _moment(x, counts, c, n):
     return sum(m) / sum(counts)
 
 
+def _weighted_diff(h, l, r):
+    diff = l[0] - r[0]
+    if h.weighted_diff is True:
+        diff *= math.log(0.00001 + abs(l[1] - r[1]))
+    return diff
+
+
 def _update_diffs(h, i):
     if h.diffs is not None:
+        update_min = False
         if i > 0:
-            diff = h.bins[i][0] - h.bins[i-1][0]
+            diff = _weighted_diff(h, h.bins[i], h.bins[i-1])
             if h.diffs[i-1] == h.min_diff:
                 h.diffs[i-1] = diff
-                h.min_diff = min(h.diffs)
+                update_min = True
             else:
                 h.diffs[i-1] = diff
                 if h.diffs[i-1] < h.min_diff:
                     h.min_diff = h.diffs[i-1]
         if i < len(h.bins) - 1:
-            diff = h.bins[i+1][0] - h.bins[i][0]
+            diff = _weighted_diff(h, h.bins[i+1], h.bins[i])
             if h.diffs[i] == h.min_diff:
                 h.diffs[i] = diff
-                h.min_diff = min(h.diffs)
+                update_min = True
             else:
                 h.diffs[i] = diff
                 if h.diffs[i] < h.min_diff:
                     h.min_diff = h.diffs[i]
+
+        if update_min is True:
+            h.min_diff = min(h.diffs)
 
 
 def _trim(h, index):
@@ -75,14 +87,12 @@ def _trim(h, index):
         else:
             min_diff = None
             i = None
-            prev_value = 0
             for index, value in enumerate(h.bins):
                 if index > 0:
-                    diff = value[0] - prev_value
+                    diff = _weighted_diff(h, h.bins[index], h.bins[index-1])
                     if min_diff is None or diff < min_diff:
                         min_diff = diff
                         i = index - 1
-                prev_value = value[0]
 
         bins[i] = (
             (bins[i][0]*bins[i][1] + bins[i+1][0]*bins[i+1][1])
@@ -116,11 +126,11 @@ def _trim_in_place(h, value, count, i):
 def _compute_diffs(h):
     diffs = []
     bins = h.bins
-    h.min_diff = h.max
+    h.min_diff = None
     for index in range(1, len(bins)):
-        diff = bins[index][0] - bins[index-1][0]
+        diff = _weighted_diff(h, h.bins[index], h.bins[index-1])
         diffs.append(diff)
-        if diff < h.min_diff:
+        if h.min_diff is None or diff < h.min_diff:
             h.min_diff = diff
 
     return diffs
@@ -158,10 +168,8 @@ def _search_in_place_index(h, new_value, index):
     i_bin = None
 
     if index > 0:
-        prev_value = bins[index-1][0]
-        value = bins[index][0]
-        diff1 = new_value - prev_value
-        diff2 = value - new_value
+        diff1 = _weighted_diff(h, (new_value, 1), h.bins[index-1])
+        diff2 = _weighted_diff(h, h.bins[index], (new_value, 1))
         if diff1 < diff2:
             diff = diff1
             i_bin = index-1
@@ -216,7 +224,7 @@ def update(h, value, count=1):
     if index == -1:
         bins.append((value, count))
         if h.diffs is not None:
-            diff = h.bins[-1][0] - h.bins[-2][0]
+            diff = _weighted_diff(h, h.bins[-1], h.bins[-2])
             h.diffs.append(diff)
             if diff < h.min_diff:
                 h.min_diff = diff
@@ -410,12 +418,15 @@ def quantile(h, value):
     bins = h.bins
     i = 0
     if q_count <= (bins[0][1] / 2):  # left values
-        ratio = q_count / (h.min + bins[0][1] / 2)
+        print("left")
+        ratio = q_count / (bins[0][1] / 2)
         value = h.min + (ratio * (bins[0][0] - h.min))
     elif q_count >= (total_count - (bins[-1][1] / 2)):  # right values
-        mb = q_count - (total_count - (bins[-1][1] / 2))
-        ratio = q_count / (h.max + bins[-1][1] / 2)
+        base = q_count - (total_count - (bins[-1][1] / 2))
+        ratio = base / (bins[-1][1] / 2)
         value = bins[-1][0] + (ratio * (h.max - bins[-1][0]))
+        print("right value for quantile base: {}, ratio: {}".format(
+            base, ratio))
     else:
         mb = q_count - bins[0][1] / 2
         while mb - (bins[i][1] + bins[i+1][1]) / 2 > 0 and i < len(bins) - 1:
