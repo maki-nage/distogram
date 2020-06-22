@@ -48,7 +48,7 @@ def _moment(x, counts, c, n):
 def _weighted_diff(h, l, r):
     diff = l[0] - r[0]
     if h.weighted_diff is True:
-        diff *= math.log(0.00001 + abs(l[1] - r[1]))
+        diff *= math.log(0.00001 + min(l[1], r[1]))
     return diff
 
 
