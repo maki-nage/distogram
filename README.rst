@@ -119,9 +119,9 @@ On a i7-9800X Intel CPU, performances are:
 Interpreter   Operation   Numpy         Req/s
 ============  ==========  =======  ==========
 pypy 7.3      update      no          6563311
-pypy 7.3      update      yes          114262
-CPython 3.7   update      no            65763
-CPython 3.7   update      yes           39277
+pypy 7.3      update      yes          111318
+CPython 3.7   update      no           436709
+CPython 3.7   update      yes          251603
 ============  ==========  =======  ==========
 
 On a modest 2014 13" macbook pro, performances are:

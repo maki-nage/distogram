@@ -1,5 +1,6 @@
 import math
 from functools import reduce
+from bisect import bisect_left
 
 __author__ = """Romain Picard"""
 __email__ = 'romain.picard@oakbits.com'
@@ -148,16 +149,6 @@ def _linear_index(bins, value):
     return 0
 
 
-def _bisect_left(a, x):
-    lo = 0
-    hi = len(a)
-    while lo < hi:
-        mid = (lo+hi)//2
-        if a[mid][0] < x: lo = mid+1
-        else: hi = mid
-    return lo
-
-
 def _search_in_place_index(h, new_value, index):
     bins = h.bins
 
@@ -168,8 +159,8 @@ def _search_in_place_index(h, new_value, index):
     i_bin = None
 
     if index > 0:
-        diff1 = _weighted_diff(h, (new_value, 1), h.bins[index-1])
-        diff2 = _weighted_diff(h, h.bins[index], (new_value, 1))
+        diff1 = _weighted_diff(h, (new_value, 1), bins[index-1])
+        diff2 = _weighted_diff(h, bins[index], (new_value, 1))
         if diff1 < diff2:
             diff = diff1
             i_bin = index-1
@@ -206,7 +197,7 @@ def update(h, value, count=1):
             if len(bins) >= h.bin_count:
                 index = _linear_index(bins, value)
             if index == 0:
-                index = _bisect_left(bins, value)
+                index = bisect_left(bins, (value, 1))
 
     if index > 0 and len(bins) >= h.bin_count:
         in_place_index = _search_in_place_index(h, value, index)
