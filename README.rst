@@ -147,3 +147,6 @@ Credits
 Although this code has been written by following the aforementioned research
 paper, some parts are also inspired by the implementation from
 `Carson Farmer <https://github.com/carsonfarmer/streamhist>`__.
+
+Thanks to `John Belmonte <https://github.com/belm0>`_ for his help on
+performances and accuracy improvements.
