@@ -15,26 +15,22 @@ def bench_update():
         for num_points in num_points_list
     }
 
-    for num_points in num_points_list[2:3]:
+    for num_points in num_points_list:
         values = numpy.random.normal(size=num_points)
 
         for n in range(6):
             bin_count = 32 * (2 ** n)
 
             start = time.time()
-            [utils.create_old_distogram(bin_count, values) for _ in range(num_samples)]
-            old_time = (time.time() - start) / num_samples
-
-            start = time.time()
             [utils.create_distogram(bin_count, values) for _ in range(num_samples)]
-            new_time = (time.time() - start) / num_samples
+            time_taken = (time.time() - start) / num_samples
 
-            times_dict[num_points][bin_count] = old_time, new_time
+            times_dict[num_points][bin_count] = time_taken
 
-    # utils.plot_times_dict(
-    #     times_dict,
-    #     title='update',
-    # )
+    utils.plot_times_dict(
+        times_dict,
+        title='update',
+    )
     return
 
 

@@ -2,7 +2,6 @@ import time
 from functools import reduce
 
 import distogram
-import old_distogram
 import utils
 
 
@@ -19,18 +18,6 @@ def bench_merge():
     for n in range(6):
         bin_count = 32 * (2 ** n)
 
-        old_histograms = [
-            utils.create_old_distogram(bin_count, values)
-            for values in values_list
-        ]
-        start = time.time()
-        _ = reduce(
-            lambda res, val: old_distogram.merge(res, val),
-            old_histograms,
-            old_distogram.Distogram(bin_count=bin_count)
-        )
-        old_time = (time.time() - start) / num_samples
-
         histograms = [
             utils.create_distogram(bin_count, values)
             for values in values_list
@@ -41,9 +28,9 @@ def bench_merge():
             histograms,
             distogram.Distogram(bin_count=bin_count)
         )
-        new_time = (time.time() - start) / num_samples
+        time_taken = (time.time() - start) / num_samples
 
-        times_dict[num_points][bin_count] = old_time, new_time
+        times_dict[num_points][bin_count] = time_taken
 
     utils.plot_times_dict(
         times_dict,
