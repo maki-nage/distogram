@@ -8,9 +8,9 @@ import random
 
 def test_quantile():
     h = distogram.Distogram(bin_count=3)
-    h = distogram.update(h, 16, c=4)
-    h = distogram.update(h, 23, c=3)
-    h = distogram.update(h, 28, c=5)
+    h = distogram.update(h, 16, count=4)
+    h = distogram.update(h, 23, count=3)
+    h = distogram.update(h, 28, count=5)
 
     assert distogram.quantile(h, 0.5) == approx(23.625)
 

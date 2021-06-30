@@ -15,7 +15,7 @@ def bench_update():
         for num_points in num_points_list
     }
 
-    for num_points in num_points_list:
+    for num_points in num_points_list[2:3]:
         values = numpy.random.normal(size=num_points)
 
         for n in range(6):
@@ -31,10 +31,10 @@ def bench_update():
 
             times_dict[num_points][bin_count] = old_time, new_time
 
-    utils.plot_times_dict(
-        times_dict,
-        title='update',
-    )
+    # utils.plot_times_dict(
+    #     times_dict,
+    #     title='update',
+    # )
     return
 
 

@@ -1,10 +1,11 @@
 __author__ = """Romain Picard"""
 __email__ = 'romain.picard@oakbits.com'
-__version__ = '1.7.0'
+__version__ = '1.6.0'
 
 import math
 from bisect import bisect_left
 from functools import reduce
+from itertools import accumulate
 from operator import itemgetter
 from typing import List
 from typing import Optional
@@ -117,10 +118,13 @@ def _trim_in_place(h: Distogram, value: float, c: int, i: int):
 
 
 def _compute_diffs(h: Distogram) -> List[float]:
-    diffs = [
-        _weighted_diff(h, b2, b1)
-        for b1, b2 in zip(h.bins[:-1], h.bins[1:])
-    ]
+    if h.weighted_diff is True:
+        diffs = [
+            (v2 - v1) * math.log(EPSILON + min(f1, f2))
+            for (v1, f1), (v2, f2) in zip(h.bins[:-1], h.bins[1:])
+        ]
+    else:
+        diffs = [v2 - v1 for (v1, _), (v2, _) in zip(h.bins[:-1], h.bins[1:])]
     h.min_diff = min(diffs)
 
     return diffs
@@ -141,48 +145,45 @@ def _search_in_place_index(h: Distogram, new_value: float, index: int) -> int:
     return -1
 
 
-def update(h: Distogram, value: float, c: int = 1) -> Distogram:
+def update(h: Distogram, value: float, count: int = 1) -> Distogram:
     """ Adds a new element to the distribution.
 
     Args:
         h: A Distogram object.
         value: The value to add on the histogram.
-        c: [Optional] The number of times that value must be added.
+        count: [Optional] The number of times that value must be added.
 
     Returns:
         A Distogram object where value as been processed.
     """
     index = 0
     if len(h.bins) > 0:
-        v0, _ = h.bins[0]
-        vl, _ = h.bins[-1]
-
-        if value <= v0:
+        if value <= h.bins[0][0]:
             index = 0
-        elif value >= vl:
+        elif value >= h.bins[-1][0]:
             index = -1
         else:
             index = bisect_left(h.bins, (value, 1))
 
         vi, fi = h.bins[index]
         if vi == value:
-            h.bins[index] = (vi, fi + c)
+            h.bins[index] = (vi, fi + count)
             return h
 
     if index > 0 and len(h.bins) >= h.bin_count:
         in_place_index = _search_in_place_index(h, value, index)
         if in_place_index > 0:
-            h = _trim_in_place(h, value, c, in_place_index)
+            h = _trim_in_place(h, value, count, in_place_index)
             return h
 
     if index == -1:
-        h.bins.append((value, c))
+        h.bins.append((value, count))
         if h.diffs is not None:
             diff = _weighted_diff(h, h.bins[-1], h.bins[-2])
             h.diffs.append(diff)
             h.min_diff = min(h.min_diff, diff)
     else:
-        h.bins.insert(index, (value, c))
+        h.bins.insert(index, (value, count))
         if h.diffs is not None:
             h.diffs.insert(index, 0)
             _update_diffs(h, index)
@@ -266,7 +267,7 @@ def count(h: Distogram) -> float:
     Returns:
         The number of elements in the distribution.
     """
-    return reduce(lambda acc, b: acc + b[1], h.bins, 0)
+    return sum((f for _, f in h.bins))
 
 
 def bounds(h: Distogram) -> Tuple[float, float]:
@@ -290,8 +291,7 @@ def mean(h: Distogram) -> float:
     Returns:
         An estimation of the mean of the values in the distribution.
     """
-    p = [i[0] for i in h.bins]
-    m = [i[1] for i in h.bins]
+    p, m = zip(*h.bins)
     return _moment(p, m, 0, 1)
 
 
@@ -304,9 +304,8 @@ def variance(h: Distogram) -> float:
     Returns:
         An estimation of the variance of the values in the distribution.
     """
-    p = [i[0] for i in h.bins]
-    m = [i[1] for i in h.bins]
-    return _moment(p, m, _moment(p, m, 0, 1), 2)
+    p, m = zip(*h.bins)
+    return _moment(p, m, mean(h), 2)
 
 
 def stddev(h: Distogram) -> float:
@@ -341,11 +340,10 @@ def histogram(h: Distogram, ucount: int = 100) -> List[Tuple[float, float]]:
 
     bin_bounds = _linspace(h.min, h.max, num=ucount+1)
     counts = [count_at(h, e) for e in bin_bounds[1:-1]]
-    u = [(bin_bounds[0], counts[0])]
-    u.extend([
+    u = [
         (b, new - last)
         for b, new, last in zip(bin_bounds[1:], counts[1:], counts[:-1])
-    ])
+    ]
 
     return u
 
@@ -364,7 +362,7 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
     if len(h.bins) == 0:
         return None
 
-    if not (0.0 < value < 1.0):
+    if not (0 <= value <= 1):
         return None
 
     total_count = count(h)
@@ -383,14 +381,11 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
 
     else:
         mb = q_count - f0 / 2
-        vi, fi, vj, fj = 0, 0, 0, 0
-        for (vi, fi), (vj, fj) in zip(h.bins[:-1], h.bins[1:]):
-            if mb > (temp := (fi + fj) / 2):
-                mb -= temp
-            else:
-                break
+        mids = [(fi + fj) / 2 for (_, fi), (_, fj) in zip(h.bins[:-1], h.bins[1:])]
+        i, _ = next(filter(lambda i_f: mb < i_f[1], enumerate(accumulate(mids))))
 
-        fraction = mb / ((fi + fj) / 2)
-        result = vi * (1 - fraction) + vj * fraction
+        (vi, _), (vj, _) = h.bins[i], h.bins[i + 1]
+        fraction = (mb - sum(mids[:i])) / mids[i]
+        result = vi + (fraction * (vj - vi))
 
     return result

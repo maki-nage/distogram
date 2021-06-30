@@ -9,9 +9,9 @@ def test_count_at():
     print(h)
 
     # fill histogram
-    h = distogram.update(h, 16, c=4)
-    h = distogram.update(h, 23, c=3)
-    h = distogram.update(h, 28, c=5)
+    h = distogram.update(h, 16, count=4)
+    h = distogram.update(h, 23, count=3)
+    h = distogram.update(h, 28, count=5)
     print(h)
 
     actual_result = distogram.count_at(h, 25)
