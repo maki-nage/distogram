@@ -1,3 +1,4 @@
+import pytest
 from pytest import approx
 import distogram
 
@@ -27,3 +28,10 @@ def test_update():
     assert h.bins[1] == (23, 2)
     assert h.bins[2][0] == approx(27.33333)
     assert h.bins[2][1] == 3
+
+
+def test_update_with_invalid_count():
+    h = distogram.Distogram(bin_count=3)
+
+    with pytest.raises(ValueError):
+        distogram.update(h, 23, count=0)

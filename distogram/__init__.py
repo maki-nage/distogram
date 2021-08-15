@@ -155,7 +155,13 @@ def update(h: Distogram, value: float, count: int = 1) -> Distogram:
 
     Returns:
         A Distogram object where value as been processed.
+
+    Raises:
+        ValueError if count is not strictly positive.
     """
+    if count <= 0:
+        raise ValueError("count must be strictly positive")
+
     index = 0
     if len(h.bins) > 0:
         if value <= h.bins[0][0]:
@@ -193,8 +199,7 @@ def update(h: Distogram, value: float, count: int = 1) -> Distogram:
     if (h.max is None) or (h.max < value):
         h.max = value
 
-    h = _trim(h)
-    return h
+    return _trim(h)
 
 
 def merge(h1: Distogram, h2: Distogram) -> Distogram:
@@ -321,24 +326,22 @@ def stddev(h: Distogram) -> float:
     return math.sqrt(variance(h))
 
 
-def histogram(h: Distogram, ucount: int = 100) -> List[Tuple[float, float]]:
+def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
     """ Returns a histogram of the distribution
 
     Args:
         h: A Distogram object.
-        ucount: [Optional] The number of bins in the histogram.
+        bin_count: [Optional] The number of bins in the histogram.
 
     Returns:
-        An estimation of the histogram of the distribution.
-
-    Raises:
-        ValueError if distribution contains less elements than the number of
-        bins in the Distogram object.
+        An estimation of the histogram of the distribution, or None
+        if there is not enough items in the distribution.
     """
-    if len(h.bins) < h.bin_count:
-        raise ValueError("not enough elements in distribution")
 
-    bin_bounds = _linspace(h.min, h.max, num=ucount+1)
+    if len(h.bins) < bin_count:
+        return None
+
+    bin_bounds = _linspace(h.min, h.max, num=bin_count+2)
     counts = [count_at(h, e) for e in bin_bounds[1:-1]]
     u = [
         (b, new - last)
@@ -357,7 +360,7 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
 
     Returns:
         An estimation of the quantile. Returns None if the Distogram
-        object contains no element or value is outside of (0:1).
+        object contains no element or value is outside of [0, 1].
     """
     if len(h.bins) == 0:
         return None
