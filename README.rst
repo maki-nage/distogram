@@ -129,10 +129,10 @@ On a modest 2014 13" macbook pro, performances are:
 ============  ==========  =======  ==========
 Interpreter   Operation   Numpy         Req/s
 ============  ==========  =======  ==========
-pypy 7.3      update      no          3114940
-pypy 7.3      update      yes           38687
-CPython 3.7   update      no           107345
-CPython 3.7   update      yes           71843
+pypy 7.3      update      no          3572436
+pypy 7.3      update      yes           37630
+CPython 3.7   update      no           112749
+CPython 3.7   update      yes           81005
 ============  ==========  =======  ==========
 
 As you can see, your are encouraged to use pypy with python native types. Pypy's
