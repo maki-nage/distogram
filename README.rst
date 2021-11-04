@@ -150,3 +150,25 @@ paper, some parts are also inspired by the implementation from
 
 Thanks to `John Belmonte <https://github.com/belm0>`_ for his help on
 performances and accuracy improvements.
+
+Draft Apache Beam distogram code
+========
+
+.. code:: python
+
+class DistogramFn(beam.CombineFn):
+  def create_accumulator(self):
+    return distogram.Distogram()
+
+  def add_input(self, distogram_var, input):
+    h = distogram.update(distogram_var, input)
+    return h
+
+  def merge_accumulators(self, accumulators):
+    h = accumulators[0]
+    for i in range(1, split_count):
+        h = distogram.merge(h, accumulators[i])
+    return h
+
+  def extract_output(self, distogram_var):
+    return distogram_var
