@@ -19,14 +19,17 @@ Bin = Tuple[float, int]
 class Distogram(object):
     """ Compressed representation of a distribution.
     """
-    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 'weighted_diff'
+    __slots__ = ('bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 
+        'weighted_diff', 'min_sample_list', 'max_sample_list', 'bin_sample_list')
 
-    def __init__(self, bin_count: int = 100, weighted_diff: bool = False):
+    def __init__(self, bin_count: int = 100, weighted_diff: bool = False, 
+        sample_size: int = 0):
         """ Creates a new Distogram object
 
         Args:
             bin_count: [Optional] the number of bins to use.
             weighted_diff: [Optional] Whether to use weighted bin sizes.
+            sample_size: [Optional] How many min/max/per bin samples to keep.
 
         Returns:
             A Distogram object.
@@ -35,6 +38,9 @@ class Distogram(object):
         self.bins: List[Bin] = list()
         self.min: Optional[float] = None
         self.max: Optional[float] = None
+        self.min_sample_list: Optional[List[object]] = list()
+        self.max_sample_list: Optional[List[object]] = list()
+        self.bin_sample_list: Optional[List[List[object]]] = list()
         self.diffs: Optional[List[float]] = None
         self.min_diff: Optional[float] = None
         self.weighted_diff: bool = weighted_diff
@@ -145,7 +151,8 @@ def _search_in_place_index(h: Distogram, new_value: float, index: int) -> int:
     return -1
 
 
-def update(h: Distogram, value: float, count: int = 1) -> Distogram:
+def update(
+    h: Distogram, value: float, count: int = 1, object=None) -> Distogram:
     """ Adds a new element to the distribution.
 
     Args:
@@ -348,6 +355,44 @@ def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
         for b, new, last in zip(bin_bounds[1:], counts[1:], counts[:-1])
     ]
 
+    return u
+
+
+def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
+    """ Returns a histogram of the distribution
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the frequency density distribution of the distribution,
+        or None if there is not enough items in the distribution.
+    """
+
+    if count(h) < 2:
+        return None
+
+    bin_bounds = [float(i[0]) for i in h.bins]
+    bin_midpoints = [
+        (bin_bounds[i - 1] + bin_bounds[i]) / 2 
+        for i in range(1, len(bin_bounds))]
+    bin_widths = [
+        (bin_bounds[i] - bin_bounds[i - 1]) 
+        for i in range(1, len(bin_bounds))]
+    counts = [0]
+    counts.extend([count_at(h, e) for e in bin_midpoints])
+    densities = [
+        (new - last) / delta 
+        for new, last, delta in zip(counts[1:], counts[:-1], bin_widths)]
+    u = [(bin_bounds[0], 0)]
+    # u.append([
+    #     (b, density)
+    #     for b, new, last in zip(bin_bounds[1:], counts[1:], counts[:-1])
+    # ]
+    for i in range(len(bin_midpoints)):
+        u.append((bin_bounds[i], densities[i]))
+        u.append((bin_bounds[i + 1], densities[i]))
+    u.append((bin_bounds[-1], 0))
     return u
 
 
