@@ -351,6 +351,40 @@ def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
     return u
 
 
+def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
+    """ Returns a histogram of the distribution
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the frequency density distribution, or None if 
+        there are not enough values in the distribution.
+    """
+
+    if count(h) < 2:
+        return None
+
+    bin_bounds = [float(i[0]) for i in h.bins]
+    bin_midpoints = [
+        (bin_bounds[i - 1] + bin_bounds[i]) / 2 
+        for i in range(1, len(bin_bounds))]
+    bin_widths = [
+        (bin_bounds[i] - bin_bounds[i - 1]) 
+        for i in range(1, len(bin_bounds))]
+    counts = [0]
+    counts.extend([count_at(h, e) for e in bin_midpoints])
+    densities = [
+        (new - last) / delta 
+        for new, last, delta in zip(counts[1:], counts[:-1], bin_widths)]
+    u = [(bin_bounds[0], 0)]
+    for i in range(len(bin_midpoints)):
+        u.append((bin_bounds[i], densities[i]))
+        u.append((bin_bounds[i + 1], densities[i]))
+    u.append((bin_bounds[-1], 0))
+    return u
+
+
 def quantile(h: Distogram, value: float) -> Optional[float]:
     """ Returns a quantile of the distribution
 
