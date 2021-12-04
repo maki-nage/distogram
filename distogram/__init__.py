@@ -45,8 +45,7 @@ def _linspace(start: float, stop: float, num: int) -> List[float]:
     if num == 1:
         return [stop]
     step = (stop - start) / float(num)
-    values = [start]
-    values.extend([start + step * i for i in range(1, num)])
+    values = [start + step * i for i in range(num)]
     values.append(stop)
     return values
 
