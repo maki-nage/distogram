@@ -10,6 +10,7 @@ from operator import itemgetter
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 EPSILON = 1e-5
 Bin = Tuple[float, int]
@@ -44,7 +45,9 @@ def _linspace(start: float, stop: float, num: int) -> List[float]:
     if num == 1:
         return [stop]
     step = (stop - start) / float(num)
-    values = [start + step * i for i in range(num + 1)]
+    values = [start]
+    values.extend([start + step * i for i in range(1, num)])
+    values.append(stop)
     return values
 
 
@@ -240,6 +243,12 @@ def count_at(h: Distogram, value: float):
     if value < h.min or value > h.max:
         return None
 
+    if value == h.min:
+        return 0
+
+    if value == h.max:
+        return count(h)
+
     v0, f0 = h.bins[0]
     vl, fl = h.bins[-1]
     if value <= v0:  # left
@@ -326,28 +335,43 @@ def stddev(h: Distogram) -> float:
     return math.sqrt(variance(h))
 
 
-def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
+def histogram(
+    h: Distogram, 
+    bin_count: int = 100, 
+    data_type: str = "distogram") -> Union[List[Tuple[float, float]],
+                                           Tuple[List[float], List[float]]]:
     """ Returns a histogram of the distribution
 
     Args:
         h: A Distogram object.
         bin_count: [Optional] The number of bins in the histogram.
+        data_type: [Optional] The format of the histogram. 
+                   ("distogram" = List[Tuple[bin, count]],
+                    "numpy" = Tuple[List[counts], List[bin_edges]])
 
     Returns:
         An estimation of the histogram of the distribution, or None
         if there is not enough items in the distribution.
     """
-
     if len(h.bins) < bin_count:
         return None
 
-    bin_bounds = _linspace(h.min, h.max, num=bin_count+2)
-    counts = [count_at(h, e) for e in bin_bounds[1:-1]]
-    u = [
-        (b, new - last)
-        for b, new, last in zip(bin_bounds[1:], counts[1:], counts[:-1])
-    ]
+    allowed_data_types = set(["distogram", "numpy"])
+    if not data_type in allowed_data_types:
+        raise ValueError(
+            f"data_type {data_type} is not a member of {allowed_data_types}")
 
+    bin_bounds = _linspace(h.min, h.max, num=bin_count + 2)
+    counts = [count_at(h, e) for e in bin_bounds]
+    if data_type == "distogram":
+        u = [
+            ((b_new + b_last) / 2, new - last)
+            for b_new, b_last, new, last in zip(
+                bin_bounds[1:], bin_bounds[:-1], counts[1:], counts[:-1])
+        ]
+    elif data_type == "numpy":
+        counts = [new - last for new, last in zip(counts[1:], counts[:-1])]
+        u = tuple([counts, bin_bounds])
     return u
 
 
@@ -377,12 +401,13 @@ def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
     densities = [
         (new - last) / delta 
         for new, last, delta in zip(counts[1:], counts[:-1], bin_widths)]
-    u = [(bin_bounds[0], 0)]
-    for i in range(len(bin_midpoints)):
-        u.append((bin_bounds[i], densities[i]))
-        u.append((bin_bounds[i + 1], densities[i]))
-    u.append((bin_bounds[-1], 0))
-    return u
+    return tuple([densities, bin_bounds])
+    # u = [(bin_bounds[0], 0)]
+    # for i in range(len(bin_midpoints)):
+    #     u.append((bin_bounds[i], densities[i]))
+    #     u.append((bin_bounds[i + 1], densities[i]))
+    # u.append((bin_bounds[-1], 0))
+    # return u
 
 
 def quantile(h: Distogram, value: float) -> Optional[float]:
