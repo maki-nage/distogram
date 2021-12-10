@@ -11,19 +11,187 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from collections import deque
+
 EPSILON = 1e-5
 Bin = Tuple[float, int]
+
+
+class Item(object):
+    """ Holds a value and an object for OrderedMinMaxList.
+    """
+
+    def __init__(self, value, obj=None):
+        """ Creates a new Item object
+
+        Args:
+            value: [Required] A value.
+            obj: [Optional] A python object associated with the value.
+
+        Returns:
+            A Item object.
+        """
+        self.value: float = value
+        self.obj = obj
+
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __lt__(self, other):
+        return self.value < other.value
+
+    def __gt__(self, other):
+        return self.value > other.value
+
+    def __le__(self, other):
+        return self.value <= other.value
+
+    def __ge__(self, other):
+        return self.value >= other.value
+
+    def __str__(self):
+        return f"Item({self.value})"
+
+    def __repr__(self):
+        return f"Item({self.value}): {self.obj}"
+
+
+class OrderedMinMaxList(object):
+    """ Maintains an ordered fixed size min or max list.
+    """
+    # @TODO: This implementation should be faster than a fixed size heap for 
+    #        most large datasets, but a comparison would be interesting.
+    # https://stackoverflow.com/questions/30443150/maintain-a-fixed-size-heap-python
+
+    def __init__(self, min_max_type=None, max_len=10):
+        """ Creates a new OrderedMinMaxList object.
+
+        Args:
+            min_max_type: [Required] Either "min" or "max".
+            max_len: [Optional] Maximum length of list.
+
+        Returns:
+            A OrderedMinMaxList object.
+        """
+        self.queue = deque()
+        self.min_max_type: str = min_max_type
+        self.max_len: int = max_len
+        if self.min_max_type not in ["min", "max"]:
+            raise ValueError(
+                f"{self.min_max_type} is not supported. "
+                f"Only 'min' and 'max' are supported.")
+
+    def merge(self, other):
+        """ Merge two OrderedMinMaxList objects.
+
+        The merged OrderedMinMaxList will keep the `max_len` min or max 
+        Items in both self and other. 
+
+        Args:
+            other: [Required] An OrderedMinMaxList object.
+
+        Returns:
+            A OrderedMinMaxList object.
+        """
+        if self.min_max_type != other.min_max_type:
+            raise ValueError(
+                f"'{self.min_max_type}' != '{other.min_max_type}'"
+                f"Only OrderedMinMaxList(s) must be same type")
+        a_queue = self.queue.copy()
+        b_queue = other.queue.copy()
+        new_queue = deque()
+        new_len = min(self.max_len, other.max_len)
+        new_min_max_list = OrderedMinMaxList(
+            self.min_max_type, max_len=new_len)
+        if self.min_max_type == "min":
+            while len(new_queue) < new_len:
+                a = None if len(self.queue) == 0 else a_queue[0]
+                b = None if len(other.queue) == 0 else b_queue[0]
+                if a and a <= b:
+                    new_queue.append(a)
+                    a_queue.popleft()
+                else:
+                    new_queue.append(b)
+                    b_queue.popleft()
+        elif self.min_max_type == "max":
+            while len(new_queue) < new_len:
+                a = None if len(self.queue) == 0 else a_queue[-1]
+                b = None if len(other.queue) == 0 else b_queue[-1]
+                if a and a >= b:
+                    new_queue.appendleft(a)
+                    a_queue.pop()
+                else:
+                    new_queue.appendleft(b)
+                    b_queue.pop()
+        new_min_max_list.queue = new_queue
+        return new_min_max_list
+
+    def add(self, value, obj=None):
+        """ Add a value and optional object to a OrderedMinMaxList.
+
+        Args:
+            value: [Required] value to be added.
+            obj: [Optional] object associated with value.
+
+        Returns:
+            None.
+        """
+        try:
+            value = float(value)
+        except ValueError:
+            raise ValueError(f"{value} can not be converted into a float")
+        item = Item(value, obj)
+        # unchanged for min/max
+        if len(self.queue) < self.max_len:
+            if len(self.queue) == 0:
+                self.queue.append(item)
+            elif item < self.queue[0]:
+                self.queue.appendleft(item)
+            elif item > self.queue[-1]:
+                self.queue.append(item)
+            else:
+                self.queue.append(item)
+                self.queue = deque(sorted(list(self.queue)))
+        else:
+            if self.min_max_type == "min":
+                if item <= self.queue[0]:
+                    self.queue.appendleft(item)
+                    self.queue = deque(list(self.queue)[:self.max_len])
+                elif item > self.queue[-1]:
+                    pass
+                else:
+                    self.queue.append(item)
+                    self.queue = deque(sorted(list(self.queue))[:self.max_len])
+
+            elif self.min_max_type == "max":
+                if item >= self.queue[-1]:
+                    self.queue.append(item)
+                    self.queue = deque(list(self.queue)[-self.max_len:])
+                elif item < self.queue[0]:
+                    pass
+                else:
+                    self.queue.append(item)
+                    self.queue = (
+                        deque(sorted(list(self.queue))[-self.max_len:]))
 
 
 # bins is a tuple of (cut point, count)
 class Distogram(object):
     """ Compressed representation of a distribution.
     """
-    __slots__ = ('bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 
-        'weighted_diff', 'min_sample_list', 'max_sample_list', 'bin_sample_list')
+    __slots__ = (
+        'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 
+        'weighted_diff', 'min_list', 'max_list', 'bin_list', 
+        'min_max_record', 'min_max_record_size')
 
-    def __init__(self, bin_count: int = 100, weighted_diff: bool = False, 
-        sample_size: int = 0):
+    def __init__(
+        self, 
+        bin_count: int = 100, 
+        weighted_diff: bool = False, 
+        sample_size: int = 0,
+        min_max_record: bool = False,
+        min_max_record_size: int = 10,
+    ):
         """ Creates a new Distogram object
 
         Args:
@@ -38,12 +206,16 @@ class Distogram(object):
         self.bins: List[Bin] = list()
         self.min: Optional[float] = None
         self.max: Optional[float] = None
-        self.min_sample_list: Optional[List[object]] = list()
-        self.max_sample_list: Optional[List[object]] = list()
-        self.bin_sample_list: Optional[List[List[object]]] = list()
+        self.min_list: Optional[List[object]] = list()
+        self.max_list: Optional[List[object]] = list()
         self.diffs: Optional[List[float]] = None
         self.min_diff: Optional[float] = None
         self.weighted_diff: bool = weighted_diff
+        self.min_max_record: bool = min_max_record
+        self.min_max_record_size: int = min_max_record_size
+        if self.min_max_record:
+            self.min_list = OrderedMinMaxList("min", self.min_max_record_size)
+            self.max_list = OrderedMinMaxList("max", self.min_max_record_size)
 
 
 def _linspace(start: float, stop: float, num: int) -> List[float]:
@@ -152,7 +324,7 @@ def _search_in_place_index(h: Distogram, new_value: float, index: int) -> int:
 
 
 def update(
-    h: Distogram, value: float, count: int = 1, object=None) -> Distogram:
+        h: Distogram, value: float, count: int = 1, obj=None) -> Distogram:
     """ Adds a new element to the distribution.
 
     Args:
@@ -168,6 +340,10 @@ def update(
     """
     if count <= 0:
         raise ValueError("count must be strictly positive")
+
+    if h.min_max_record:
+        h.min_list.add(value, obj)
+        h.max_list.add(value, obj)
 
     index = 0
     if len(h.bins) > 0:
@@ -225,6 +401,10 @@ def merge(h1: Distogram, h2: Distogram) -> Distogram:
         h2.bins,
         h1,
     )
+    if h1.min_max_record and h2.min_max_record:
+        h.min_list = h1.min_list.merge(h2.min_list)
+        h.max_list = h1.max_list.merge(h2.max_list)
+
     return h
 
 
@@ -348,7 +528,7 @@ def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
     if len(h.bins) < bin_count:
         return None
 
-    bin_bounds = _linspace(h.min, h.max, num=bin_count+2)
+    bin_bounds = _linspace(h.min, h.max, num=(bin_count + 2))
     counts = [count_at(h, e) for e in bin_bounds[1:-1]]
     u = [
         (b, new - last)
@@ -391,8 +571,10 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
 
     else:
         mb = q_count - f0 / 2
-        mids = [(fi + fj) / 2 for (_, fi), (_, fj) in zip(h.bins[:-1], h.bins[1:])]
-        i, _ = next(filter(lambda i_f: mb < i_f[1], enumerate(accumulate(mids))))
+        mids = [
+            (fi + fj) / 2 for (_, fi), (_, fj) in zip(h.bins[:-1], h.bins[1:])]
+        i, _ = (
+            next(filter(lambda i_f: mb < i_f[1], enumerate(accumulate(mids)))))
 
         (vi, _), (vj, _) = h.bins[i], h.bins[i + 1]
         fraction = (mb - sum(mids[:i])) / mids[i]
