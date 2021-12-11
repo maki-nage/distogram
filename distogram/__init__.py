@@ -7,9 +7,8 @@ from bisect import bisect_left
 from functools import reduce
 from itertools import accumulate
 from operator import itemgetter
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import List, Optional, Tuple, Union, Any
+import copy
 
 from collections import deque
 
@@ -32,7 +31,7 @@ class Item(object):
             A Item object.
         """
         self.value: float = value
-        self.obj = obj
+        self.obj = copy.deepcopy(obj)
 
     def __eq__(self, other):
         return self.value == other.value
@@ -97,32 +96,49 @@ class OrderedMinMaxList(object):
             raise ValueError(
                 f"'{self.min_max_type}' != '{other.min_max_type}'"
                 f"Only OrderedMinMaxList(s) must be same type")
-        a_queue = self.queue.copy()
-        b_queue = other.queue.copy()
+        a_queue = copy.deepcopy(self.queue)
+        b_queue = copy.deepcopy(other.queue)
         new_queue = deque()
         new_len = min(self.max_len, other.max_len)
         new_min_max_list = OrderedMinMaxList(
             self.min_max_type, max_len=new_len)
+
         if self.min_max_type == "min":
             while len(new_queue) < new_len:
-                a = None if len(self.queue) == 0 else a_queue[0]
-                b = None if len(other.queue) == 0 else b_queue[0]
-                if a and a <= b:
-                    new_queue.append(a)
+                if len(a_queue) == 0:
+                    new_queue.append(b_queue[0])
+                    b_queue.popleft()
+                elif len(b_queue) == 0:
+                    new_queue.append(a_queue[0])
                     a_queue.popleft()
                 else:
-                    new_queue.append(b)
-                    b_queue.popleft()
+                    a = a_queue[0]
+                    b = b_queue[0]
+                    if a <= b:
+                        new_queue.append(a)
+                        a_queue.popleft()
+                    else:
+                        new_queue.append(b)
+                        b_queue.popleft()
+
         elif self.min_max_type == "max":
             while len(new_queue) < new_len:
-                a = None if len(self.queue) == 0 else a_queue[-1]
-                b = None if len(other.queue) == 0 else b_queue[-1]
-                if a and a >= b:
-                    new_queue.appendleft(a)
+                if len(a_queue) == 0:
+                    new_queue.appendleft(b_queue[-1])
+                    b_queue.pop()
+                elif len(b_queue) == 0:
+                    new_queue.appendleft(a_queue[-1])
                     a_queue.pop()
                 else:
-                    new_queue.appendleft(b)
-                    b_queue.pop()
+                    a = a_queue[-1]
+                    b = b_queue[-1]
+                    if a >= b:
+                        new_queue.appendleft(a)
+                        a_queue.pop()
+                    else:
+                        new_queue.appendleft(b)
+                        b_queue.pop()
+
         new_min_max_list.queue = new_queue
         return new_min_max_list
 
@@ -181,16 +197,16 @@ class Distogram(object):
     """
     __slots__ = (
         'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 
-        'weighted_diff', 'min_list', 'max_list', 'bin_list', 
-        'min_max_record', 'min_max_record_size')
+        'weighted_diff', '_min_list', '_max_list',  
+        'with_min_max_list', 'min_max_list_size')
 
     def __init__(
         self, 
         bin_count: int = 100, 
         weighted_diff: bool = False, 
         sample_size: int = 0,
-        min_max_record: bool = False,
-        min_max_record_size: int = 10,
+        with_min_max_list: bool = False,
+        min_max_list_size: int = 10,
     ):
         """ Creates a new Distogram object
 
@@ -206,16 +222,16 @@ class Distogram(object):
         self.bins: List[Bin] = list()
         self.min: Optional[float] = None
         self.max: Optional[float] = None
-        self.min_list: Optional[List[object]] = list()
-        self.max_list: Optional[List[object]] = list()
+        self._min_list: Optional[List[object]] = list()
+        self._max_list: Optional[List[object]] = list()
         self.diffs: Optional[List[float]] = None
         self.min_diff: Optional[float] = None
         self.weighted_diff: bool = weighted_diff
-        self.min_max_record: bool = min_max_record
-        self.min_max_record_size: int = min_max_record_size
-        if self.min_max_record:
-            self.min_list = OrderedMinMaxList("min", self.min_max_record_size)
-            self.max_list = OrderedMinMaxList("max", self.min_max_record_size)
+        self.with_min_max_list: bool = with_min_max_list
+        self.min_max_list_size: int = min_max_list_size
+        if self.with_min_max_list:
+            self._min_list = OrderedMinMaxList("min", self.min_max_list_size)
+            self._max_list = OrderedMinMaxList("max", self.min_max_list_size)
 
 
 def _linspace(start: float, stop: float, num: int) -> List[float]:
@@ -341,9 +357,9 @@ def update(
     if count <= 0:
         raise ValueError("count must be strictly positive")
 
-    if h.min_max_record:
-        h.min_list.add(value, obj)
-        h.max_list.add(value, obj)
+    if h.with_min_max_list:
+        h._min_list.add(value, obj)
+        h._max_list.add(value, obj)
 
     index = 0
     if len(h.bins) > 0:
@@ -385,25 +401,39 @@ def update(
     return _trim(h)
 
 
-def merge(h1: Distogram, h2: Distogram) -> Distogram:
+def merge(h1: Distogram, h2: Distogram, preserve_inputs: bool = False) -> Distogram:
     """ Merges two Distogram objects
 
     Args:
         h1: First Distogram.
         h2: Second Distogram.
+        copy: Do not modify h1 or h2. 
 
     Returns:
         A Distogram object being the composition of h1 and h2. The number of
         bins in this Distogram is equal to the number of bins in h1.
     """
-    h = reduce(
-        lambda residual, b: update(residual, *b),
-        h2.bins,
-        h1,
-    )
-    if h1.min_max_record and h2.min_max_record:
-        h.min_list = h1.min_list.merge(h2.min_list)
-        h.max_list = h1.max_list.merge(h2.max_list)
+    if preserve_inputs or (h1.with_min_max_list and h2.with_min_max_list):
+        h1c = copy.deepcopy(h1)
+        h2c = copy.deepcopy(h2)
+
+        h = reduce(
+            lambda residual, b: update(residual, *b),
+            h2c.bins,
+            h1c,
+        )
+        if h1.with_min_max_list and h2.with_min_max_list:
+            h._min_list = h1._min_list.merge(h2._min_list)
+            h._max_list = h1._max_list.merge(h2._max_list)
+    else:
+        h = reduce(
+            lambda residual, b: update(residual, *b),
+            h2.bins,
+            h1,
+        )  
+        if h1.with_min_max_list and h2.with_min_max_list:
+            h._min_list = h1._min_list.merge(h2._min_list)
+            h._max_list = h1._max_list.merge(h2._max_list)
 
     return h
 
@@ -581,3 +611,71 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
         result = vi + (fraction * (vj - vi))
 
     return result
+
+
+def _min_max_list(
+    h: Distogram, 
+    with_objects: bool = False,
+    min_max_type: str = None) -> Union[List[float],
+                                       List[Tuple[float, Any]]]:
+
+    if min_max_type not in ["min", "max"]:
+        raise ValueError(
+            f"{min_max_type} is not supported. "
+            f"Only 'min' and 'max' are supported.")
+
+    if not h.with_min_max_list:
+        if with_objects:
+            if min_max_type == "min":
+                return [(h.min, None)]
+            else:
+                return [(h.max, None)]
+        else:
+            if min_max_type == "min":
+                return [h.min]
+            else:
+                return [h.max]   
+            
+    if min_max_type == "min":
+        result = list(h._min_list.queue)
+    elif min_max_type == "max":
+        result = list(h._max_list.queue)  
+    if with_objects:
+        result = [(item.value, item.obj) for item in result]
+    else:
+        result = [item.value for item in result]
+    return result
+
+
+def min_list(
+    h: Distogram, 
+    with_objects: bool = False) -> Union[List[float],
+                                         List[Tuple[float, Any]]]:
+    """ Returns list of minimum values and, optionally, associated objects
+
+    Args:
+        h: A Distogram object.
+        with_objects: [Optional] If True, returns associated objects
+
+    Returns:
+        A list of minimum values or a list of tuples of minimum values
+        and associated objects, if present in the Distogram. 
+    """
+    return _min_max_list(h, min_max_type="min", with_objects=with_objects)
+
+
+def max_list(
+    h: Distogram, 
+    with_objects: bool = False) -> Union[List[float],
+                                         List[Tuple[float, Any]]]:
+    """ Returns list of maximum values and, optionally, associated objects
+
+    Args:
+        h: A Distogram object.
+        with_objects: [Optional] If True, returns associated objects
+
+    Returns:
+        A list of maximum values or a list of tuples of minimum values
+        and associated objects, if present in the Distogram. 
+    """
+    return _min_max_list(h, min_max_type="max", with_objects=with_objects)
