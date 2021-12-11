@@ -213,7 +213,8 @@ class Distogram(object):
         Args:
             bin_count: [Optional] the number of bins to use.
             weighted_diff: [Optional] Whether to use weighted bin sizes.
-            sample_size: [Optional] How many min/max/per bin samples to keep.
+            with_min_max_list: [Optional] Whether to maintain a list of minimum and maximum values
+            min_max_list_size: [Optional] How many min/max bin samples to keep.
 
         Returns:
             A Distogram object.
