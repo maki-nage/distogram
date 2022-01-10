@@ -15,24 +15,24 @@ EPSILON = 1e-5
 Bin = Tuple[float, int]
 
 
-# bins is a tuple of (cut point, count)
+# binned_data is a tuple of (cut point, count)
 class Distogram(object):
     """ Compressed representation of a distribution.
     """
-    __slots__ = 'bin_count', 'bins', 'min', 'max', 'diffs', 'min_diff', 'weighted_diff'
+    __slots__ = 'bins', 'binned_data', 'min', 'max', 'diffs', 'min_diff', 'weighted_diff'
 
-    def __init__(self, bin_count: int = 100, weighted_diff: bool = False):
+    def __init__(self, bins: int = 100, weighted_diff: bool = False):
         """ Creates a new Distogram object
 
         Args:
-            bin_count: [Optional] the number of bins to use.
+            bins: [Optional] the number of bins to use.
             weighted_diff: [Optional] Whether to use weighted bin sizes.
 
         Returns:
             A Distogram object.
         """
-        self.bin_count: int = bin_count
-        self.bins: List[Bin] = list()
+        self.bins: int = bins
+        self.binned_data: List[Bin] = list()
         self.min: Optional[float] = None
         self.max: Optional[float] = None
         self.diffs: Optional[List[float]] = None
@@ -69,15 +69,15 @@ def _update_diffs(h: Distogram, i: int) -> None:
             if h.diffs[i - 1] == h.min_diff:
                 update_min = True
 
-            h.diffs[i - 1] = _weighted_diff(h, h.bins[i], h.bins[i - 1])
+            h.diffs[i - 1] = _weighted_diff(h, h.binned_data[i], h.binned_data[i - 1])
             if h.diffs[i - 1] < h.min_diff:
                 h.min_diff = h.diffs[i - 1]
 
-        if i < len(h.bins) - 1:
+        if i < len(h.binned_data) - 1:
             if h.diffs[i] == h.min_diff:
                 update_min = True
 
-            h.diffs[i] = _weighted_diff(h, h.bins[i + 1], h.bins[i])
+            h.diffs[i] = _weighted_diff(h, h.binned_data[i + 1], h.binned_data[i])
             if h.diffs[i] < h.min_diff:
                 h.min_diff = h.diffs[i]
 
@@ -88,20 +88,20 @@ def _update_diffs(h: Distogram, i: int) -> None:
 
 
 def _trim(h: Distogram) -> Distogram:
-    while len(h.bins) > h.bin_count:
+    while len(h.binned_data) > h.bins:
         if h.diffs is not None:
             i = h.diffs.index(h.min_diff)
         else:
             diffs = [
-                (i - 1, _weighted_diff(h, b, h.bins[i - 1]))
-                for i, b in enumerate(h.bins[1:], start=1)
+                (i - 1, _weighted_diff(h, b, h.binned_data[i - 1]))
+                for i, b in enumerate(h.binned_data[1:], start=1)
             ]
             i, _ = min(diffs, key=itemgetter(1))
 
-        v1, f1 = h.bins[i]
-        v2, f2 = h.bins[i + 1]
-        h.bins[i] = (v1 * f1 + v2 * f2) / (f1 + f2), f1 + f2
-        del h.bins[i + 1]
+        v1, f1 = h.binned_data[i]
+        v2, f2 = h.binned_data[i + 1]
+        h.binned_data[i] = (v1 * f1 + v2 * f2) / (f1 + f2), f1 + f2
+        del h.binned_data[i + 1]
 
         if h.diffs is not None:
             del h.diffs[i]
@@ -112,8 +112,8 @@ def _trim(h: Distogram) -> Distogram:
 
 
 def _trim_in_place(h: Distogram, value: float, c: int, i: int):
-    v, f = h.bins[i]
-    h.bins[i] = (v * f + value * c) / (f + c), f + c
+    v, f = h.binned_data[i]
+    h.binned_data[i] = (v * f + value * c) / (f + c), f + c
     _update_diffs(h, i)
     return h
 
@@ -122,10 +122,10 @@ def _compute_diffs(h: Distogram) -> List[float]:
     if h.weighted_diff is True:
         diffs = [
             (v2 - v1) * math.log(EPSILON + min(f1, f2))
-            for (v1, f1), (v2, f2) in zip(h.bins[:-1], h.bins[1:])
+            for (v1, f1), (v2, f2) in zip(h.binned_data[:-1], h.binned_data[1:])
         ]
     else:
-        diffs = [v2 - v1 for (v1, _), (v2, _) in zip(h.bins[:-1], h.bins[1:])]
+        diffs = [v2 - v1 for (v1, _), (v2, _) in zip(h.binned_data[:-1], h.binned_data[1:])]
     h.min_diff = min(diffs)
 
     return diffs
@@ -136,8 +136,8 @@ def _search_in_place_index(h: Distogram, new_value: float, index: int) -> int:
         h.diffs = _compute_diffs(h)
 
     if index > 0:
-        diff1 = _weighted_diff(h, (new_value, 1), h.bins[index - 1])
-        diff2 = _weighted_diff(h, h.bins[index], (new_value, 1))
+        diff1 = _weighted_diff(h, (new_value, 1), h.binned_data[index - 1])
+        diff2 = _weighted_diff(h, h.binned_data[index], (new_value, 1))
 
         i_bin, diff = (index - 1, diff1) if diff1 < diff2 else (index, diff2)
 
@@ -164,33 +164,33 @@ def update(h: Distogram, value: float, count: int = 1) -> Distogram:
         raise ValueError("count must be strictly positive")
 
     index = 0
-    if len(h.bins) > 0:
-        if value <= h.bins[0][0]:
+    if len(h.binned_data) > 0:
+        if value <= h.binned_data[0][0]:
             index = 0
-        elif value >= h.bins[-1][0]:
+        elif value >= h.binned_data[-1][0]:
             index = -1
         else:
-            index = bisect_left(h.bins, (value, 1))
+            index = bisect_left(h.binned_data, (value, 1))
 
-        vi, fi = h.bins[index]
+        vi, fi = h.binned_data[index]
         if vi == value:
-            h.bins[index] = (vi, fi + count)
+            h.binned_data[index] = (vi, fi + count)
             return h
 
-    if index > 0 and len(h.bins) >= h.bin_count:
+    if index > 0 and len(h.binned_data) >= h.bins:
         in_place_index = _search_in_place_index(h, value, index)
         if in_place_index > 0:
             h = _trim_in_place(h, value, count, in_place_index)
             return h
 
     if index == -1:
-        h.bins.append((value, count))
+        h.binned_data.append((value, count))
         if h.diffs is not None:
-            diff = _weighted_diff(h, h.bins[-1], h.bins[-2])
+            diff = _weighted_diff(h, h.binned_data[-1], h.binned_data[-2])
             h.diffs.append(diff)
             h.min_diff = min(h.min_diff, diff)
     else:
-        h.bins.insert(index, (value, count))
+        h.binned_data.insert(index, (value, count))
         if h.diffs is not None:
             h.diffs.insert(index, 0)
             _update_diffs(h, index)
@@ -216,7 +216,7 @@ def merge(h1: Distogram, h2: Distogram) -> Distogram:
     """
     h = reduce(
         lambda residual, b: update(residual, *b),
-        h2.bins,
+        h2.binned_data,
         h1,
     )
     return h
@@ -235,7 +235,7 @@ def count_at(h: Distogram, value: float):
         object contains no element or value is outside of the distribution
         bounds.
     """
-    if len(h.bins) == 0:
+    if len(h.binned_data) == 0:
         return None
 
     if value < h.min or value > h.max:
@@ -247,23 +247,23 @@ def count_at(h: Distogram, value: float):
     if value == h.max:
         return count(h)
 
-    v0, f0 = h.bins[0]
-    vl, fl = h.bins[-1]
+    v0, f0 = h.binned_data[0]
+    vl, fl = h.binned_data[-1]
     if value <= v0:  # left
         ratio = (value - h.min) / (v0 - h.min)
         result = ratio * v0 / 2
     elif value >= vl:  # right
         ratio = (value - vl) / (h.max - vl)
         result = (1 + ratio) * fl / 2
-        result += sum((f for _, f in h.bins[:-1]))
+        result += sum((f for _, f in h.binned_data[:-1]))
     else:
-        i = sum(((value > v) for v, _ in h.bins)) - 1
-        vi, fi = h.bins[i]
-        vj, fj = h.bins[i + 1]
+        i = sum(((value > v) for v, _ in h.binned_data)) - 1
+        vi, fi = h.binned_data[i]
+        vj, fj = h.binned_data[i + 1]
 
         mb = fi + (fj - fi) / (vj - vi) * (value - vi)
         result = (fi + mb) / 2 * (value - vi) / (vj - vi)
-        result += sum((f for _, f in h.bins[:i]))
+        result += sum((f for _, f in h.binned_data[:i]))
 
         result = result + fi / 2
 
@@ -279,7 +279,7 @@ def count(h: Distogram) -> float:
     Returns:
         The number of elements in the distribution.
     """
-    return sum((f for _, f in h.bins))
+    return sum((f for _, f in h.binned_data))
 
 
 def bounds(h: Distogram) -> Tuple[float, float]:
@@ -303,7 +303,7 @@ def mean(h: Distogram) -> float:
     Returns:
         An estimation of the mean of the values in the distribution.
     """
-    p, m = zip(*h.bins)
+    p, m = zip(*h.binned_data)
     return _moment(p, m, 0, 1)
 
 
@@ -316,7 +316,7 @@ def variance(h: Distogram) -> float:
     Returns:
         An estimation of the variance of the values in the distribution.
     """
-    p, m = zip(*h.bins)
+    p, m = zip(*h.binned_data)
     return _moment(p, m, mean(h), 2)
 
 
@@ -335,21 +335,21 @@ def stddev(h: Distogram) -> float:
 
 def histogram(
     h: Distogram, 
-    bin_count: int = 100) -> Tuple[List[float], List[float]]:
+    bins: int = 100) -> Tuple[List[float], List[float]]:
     """ Returns a histogram of the distribution in numpy format.
 
     Args:
         h: A Distogram object.
-        bin_count: [Optional] The number of bins in the histogram.
+        bins: [Optional] The number of bins in the histogram.
 
     Returns:
         An estimation of the histogram of the distribution, or None
         if there is not enough items in the distribution.
     """
-    if len(h.bins) < bin_count:
+    if len(h.binned_data) < bins:
         return None
 
-    bin_bounds = _linspace(h.min, h.max, num=bin_count + 1)
+    bin_bounds = _linspace(h.min, h.max, num=bins + 1)
     counts = [count_at(h, e) for e in bin_bounds]
     counts = [new - last for new, last in zip(counts[1:], counts[:-1])]
     u = tuple([counts, bin_bounds])
@@ -370,7 +370,7 @@ def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
     if count(h) < 2:
         return None
 
-    bin_bounds = [float(i[0]) for i in h.bins]
+    bin_bounds = [float(i[0]) for i in h.binned_data]
     bin_midpoints = [
         (bin_bounds[i - 1] + bin_bounds[i]) / 2 
         for i in range(1, len(bin_bounds))]
@@ -402,7 +402,7 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
         An estimation of the quantile. Returns None if the Distogram
         object contains no element or value is outside of [0, 1].
     """
-    if len(h.bins) == 0:
+    if len(h.binned_data) == 0:
         return None
 
     if not (0 <= value <= 1):
@@ -410,8 +410,8 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
 
     total_count = count(h)
     q_count = int(total_count * value)
-    v0, f0 = h.bins[0]
-    vl, fl = h.bins[-1]
+    v0, f0 = h.binned_data[0]
+    vl, fl = h.binned_data[-1]
 
     if q_count <= (f0 / 2):  # left values
         fraction = q_count / (f0 / 2)
@@ -424,10 +424,10 @@ def quantile(h: Distogram, value: float) -> Optional[float]:
 
     else:
         mb = q_count - f0 / 2
-        mids = [(fi + fj) / 2 for (_, fi), (_, fj) in zip(h.bins[:-1], h.bins[1:])]
+        mids = [(fi + fj) / 2 for (_, fi), (_, fj) in zip(h.binned_data[:-1], h.binned_data[1:])]
         i, _ = next(filter(lambda i_f: mb < i_f[1], enumerate(accumulate(mids))))
 
-        (vi, _), (vj, _) = h.bins[i], h.bins[i + 1]
+        (vi, _), (vj, _) = h.binned_data[i], h.binned_data[i + 1]
         fraction = (mb - sum(mids[:i])) / mids[i]
         result = vi + (fraction * (vj - vi))
 
