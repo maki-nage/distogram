@@ -1,6 +1,6 @@
 __author__ = """Romain Picard"""
 __email__ = 'romain.picard@oakbits.com'
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 
 import math
 from bisect import bisect_left
@@ -10,7 +10,6 @@ from operator import itemgetter
 from typing import List
 from typing import Optional
 from typing import Tuple
-from typing import Union
 
 EPSILON = 1e-5
 Bin = Tuple[float, int]
@@ -336,17 +335,12 @@ def stddev(h: Distogram) -> float:
 
 def histogram(
     h: Distogram, 
-    bin_count: int = 100, 
-    data_type: str = "distogram") -> Union[List[Tuple[float, float]],
-                                           Tuple[List[float], List[float]]]:
-    """ Returns a histogram of the distribution
+    bin_count: int = 100) -> Tuple[List[float], List[float]]:
+    """ Returns a histogram of the distribution in numpy format.
 
     Args:
         h: A Distogram object.
         bin_count: [Optional] The number of bins in the histogram.
-        data_type: [Optional] The format of the histogram. 
-                   ("distogram" = List[Tuple[bin, count]],
-                    "numpy" = Tuple[List[counts], List[bin_edges]])
 
     Returns:
         An estimation of the histogram of the distribution, or None
@@ -355,22 +349,10 @@ def histogram(
     if len(h.bins) < bin_count:
         return None
 
-    allowed_data_types = set(["distogram", "numpy"])
-    if not data_type in allowed_data_types:
-        raise ValueError(
-            f"data_type {data_type} is not a member of {allowed_data_types}")
-
-    bin_bounds = _linspace(h.min, h.max, num=bin_count + 2)
+    bin_bounds = _linspace(h.min, h.max, num=bin_count + 1)
     counts = [count_at(h, e) for e in bin_bounds]
-    if data_type == "distogram":
-        u = [
-            ((b_new + b_last) / 2, new - last)
-            for b_new, b_last, new, last in zip(
-                bin_bounds[1:], bin_bounds[:-1], counts[1:], counts[:-1])
-        ]
-    elif data_type == "numpy":
-        counts = [new - last for new, last in zip(counts[1:], counts[:-1])]
-        u = tuple([counts, bin_bounds])
+    counts = [new - last for new, last in zip(counts[1:], counts[:-1])]
+    u = tuple([counts, bin_bounds])
     return u
 
 
