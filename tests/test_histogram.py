@@ -7,7 +7,7 @@ import pytest
 
 def test_histogram():
     normal = [random.normalvariate(0.0, 1.0) for _ in range(10000)]
-    h = distogram.Distogram(bin_count=64)
+    h = distogram.Distogram(bins=64)
 
     for i in normal:
         h = distogram.update(h, i)
@@ -21,7 +21,7 @@ def test_histogram():
 
 
 def test_histogram_on_too_small_distribution():
-    h = distogram.Distogram(bin_count=64)
+    h = distogram.Distogram(bins=64)
 
     for i in range(5):
         h = distogram.update(h, i)
@@ -30,12 +30,12 @@ def test_histogram_on_too_small_distribution():
 
 
 def test_format_histogram():
-    bin_count = 4
-    h = distogram.Distogram(bin_count=bin_count)
+    bins = 4
+    h = distogram.Distogram(bins=bins)
 
     for i in range(4):
         h = distogram.update(h, i)
 
-    hist = distogram.histogram(h, bin_count=bin_count)
+    hist = distogram.histogram(h, bins=bins)
     assert(len(hist[1]) == len(hist[0]) + 1)
 

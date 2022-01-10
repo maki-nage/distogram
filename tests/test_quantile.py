@@ -7,7 +7,7 @@ import random
 
 
 def test_quantile():
-    h = distogram.Distogram(bin_count=3)
+    h = distogram.Distogram(bins=3)
     h = distogram.update(h, 16, count=4)
     h = distogram.update(h, 23, count=3)
     h = distogram.update(h, 28, count=5)
@@ -16,7 +16,7 @@ def test_quantile():
 
 
 def test_quantile_not_enough_elemnts():
-    h = distogram.Distogram(bin_count=10)
+    h = distogram.Distogram(bins=10)
 
     for i in [12.3, 5.4, 8.2, 100.53, 23.5, 13.98]:
         h = distogram.update(h, i)
@@ -25,7 +25,7 @@ def test_quantile_not_enough_elemnts():
 
 
 def test_quantile_on_left():
-    h = distogram.Distogram(bin_count=6)
+    h = distogram.Distogram(bins=6)
 
     data = [12.3, 5.2, 5.4, 4.9, 5.5, 5.6, 8.2, 30.53, 23.5, 13.98]
     for i in data:
@@ -37,7 +37,7 @@ def test_quantile_on_left():
 
 
 def test_quantile_on_right():
-    h = distogram.Distogram(bin_count=6)
+    h = distogram.Distogram(bins=6)
 
     data = [12.3, 8.2, 100.53, 23.5, 13.98, 200, 200.2, 200.8, 200.4, 200.1]
     for i in data:
@@ -50,7 +50,7 @@ def test_quantile_on_right():
 def test_normal():
     # normal = np.random.normal(0,1, 1000)
     normal = [random.normalvariate(0.0, 1.0) for _ in range(10000)]
-    h = distogram.Distogram(bin_count=64)
+    h = distogram.Distogram(bins=64)
 
     for i in normal:
         h = distogram.update(h, i)

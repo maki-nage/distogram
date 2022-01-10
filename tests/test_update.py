@@ -4,7 +4,7 @@ import distogram
 
 
 def test_update():
-    h = distogram.Distogram(bin_count=3)
+    h = distogram.Distogram(bins=3)
 
     # fill histogram
     h = distogram.update(h, 23)
@@ -31,7 +31,7 @@ def test_update():
 
 
 def test_update_with_invalid_count():
-    h = distogram.Distogram(bin_count=3)
+    h = distogram.Distogram(bins=3)
 
     with pytest.raises(ValueError):
         distogram.update(h, 23, count=0)
