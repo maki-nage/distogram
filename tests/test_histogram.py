@@ -15,6 +15,23 @@ def test_histogram():
     np_values, np_edges = np.histogram(normal, 10)
     d_values, d_edges = distogram.histogram(h, 10)
 
+    h = distogram.Distogram(bins=3)
+    h = distogram.update(h, 23)
+    h = distogram.update(h, 28)
+    h = distogram.update(h, 16)
+    assert(distogram.histogram(h, bins=3) ==
+           (approx([1.0714285714285714, 0.6285714285714286, 1.3]),
+            [16.0, 20.0, 24.0, 28]))
+    assert(sum(distogram.histogram(h, bins=3)[0]) == approx(3.0))
+
+    hist = distogram.frequency_density_distribution(h)
+    integral = 0
+    for density, new, old in zip(hist[0], hist[1][1:], hist[1][:-1]):
+        integral += density * (new-old)
+
+    assert(hist == approx(([0.21428571428571427, 0.3], [16.0, 23.0, 28.0])))
+    assert(integral == approx(integral))
+
     # how to compare histograms?
     #assert np_values == approx(d_values, abs=0.2)
     #assert np_edges == approx(d_edges, abs=0.2)

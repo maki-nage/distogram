@@ -42,7 +42,7 @@ class Distogram(object):
 
 def _linspace(start: float, stop: float, num: int) -> List[float]:
     if num == 1:
-        return [stop]
+        return [start, stop]
     step = (stop - start) / float(num)
     values = [start + step * i for i in range(num)]
     values.append(stop)
@@ -349,7 +349,7 @@ def histogram(
     if len(h.binned_data) < bins:
         return None
 
-    bin_bounds = _linspace(h.min, h.max, num=bins + 1)
+    bin_bounds = _linspace(h.min, h.max, num=bins)
     counts = [count_at(h, e) for e in bin_bounds]
     counts = [new - last for new, last in zip(counts[1:], counts[:-1])]
     u = tuple([counts, bin_bounds])
@@ -371,24 +371,15 @@ def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
         return None
 
     bin_bounds = [float(i[0]) for i in h.binned_data]
-    bin_midpoints = [
-        (bin_bounds[i - 1] + bin_bounds[i]) / 2 
-        for i in range(1, len(bin_bounds))]
     bin_widths = [
         (bin_bounds[i] - bin_bounds[i - 1]) 
         for i in range(1, len(bin_bounds))]
     counts = [0]
-    counts.extend([count_at(h, e) for e in bin_midpoints])
+    counts.extend([count_at(h, e) for e in bin_bounds[1:]])
     densities = [
         (new - last) / delta 
         for new, last, delta in zip(counts[1:], counts[:-1], bin_widths)]
     return tuple([densities, bin_bounds])
-    # u = [(bin_bounds[0], 0)]
-    # for i in range(len(bin_midpoints)):
-    #     u.append((bin_bounds[i], densities[i]))
-    #     u.append((bin_bounds[i + 1], densities[i]))
-    # u.append((bin_bounds[-1], 0))
-    # return u
 
 
 def quantile(h: Distogram, value: float) -> Optional[float]:
