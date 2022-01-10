@@ -30,7 +30,7 @@ def test_histogram():
         integral += density * (new-old)
 
     assert(hist == approx(([0.21428571428571427, 0.3], [16.0, 23.0, 28.0])))
-    assert(integral == approx(integral))
+    assert(integral == approx(3.0))
 
     # how to compare histograms?
     #assert np_values == approx(d_values, abs=0.2)
