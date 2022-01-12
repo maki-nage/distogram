@@ -42,9 +42,10 @@ class Distogram(object):
 
 def _linspace(start: float, stop: float, num: int) -> List[float]:
     if num == 1:
-        return [stop]
+        return [start, stop]
     step = (stop - start) / float(num)
-    values = [start + step * i for i in range(num + 1)]
+    values = [start + step * i for i in range(num)]
+    values.append(stop)
     return values
 
 
@@ -240,6 +241,12 @@ def count_at(h: Distogram, value: float):
     if value < h.min or value > h.max:
         return None
 
+    if value == h.min:
+        return 0
+
+    if value == h.max:
+        return count(h)
+
     v0, f0 = h.bins[0]
     vl, fl = h.bins[-1]
     if value <= v0:  # left
@@ -326,8 +333,10 @@ def stddev(h: Distogram) -> float:
     return math.sqrt(variance(h))
 
 
-def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
-    """ Returns a histogram of the distribution
+def histogram(
+    h: Distogram, 
+    bin_count: int = 100) -> Tuple[List[float], List[float]]:
+    """ Returns a histogram of the distribution in numpy format.
 
     Args:
         h: A Distogram object.
@@ -337,18 +346,40 @@ def histogram(h: Distogram, bin_count: int = 100) -> List[Tuple[float, float]]:
         An estimation of the histogram of the distribution, or None
         if there is not enough items in the distribution.
     """
-
     if len(h.bins) < bin_count:
         return None
 
-    bin_bounds = _linspace(h.min, h.max, num=bin_count+2)
-    counts = [count_at(h, e) for e in bin_bounds[1:-1]]
-    u = [
-        (b, new - last)
-        for b, new, last in zip(bin_bounds[1:], counts[1:], counts[:-1])
-    ]
-
+    bin_bounds = _linspace(h.min, h.max, num=bin_count)
+    counts = [count_at(h, e) for e in bin_bounds]
+    counts = [new - last for new, last in zip(counts[1:], counts[:-1])]
+    u = tuple([counts, bin_bounds])
     return u
+
+
+def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
+    """ Returns a histogram of the distribution
+
+    Args:
+        h: A Distogram object.
+
+    Returns:
+        An estimation of the frequency density distribution, or None if 
+        there are not enough values in the distribution.
+    """
+
+    if count(h) < 2:
+        return None
+
+    bin_bounds = [float(i[0]) for i in h.bins]
+    bin_widths = [
+        (bin_bounds[i] - bin_bounds[i - 1]) 
+        for i in range(1, len(bin_bounds))]
+    counts = [0]
+    counts.extend([count_at(h, e) for e in bin_bounds[1:]])
+    densities = [
+        (new - last) / delta 
+        for new, last, delta in zip(counts[1:], counts[:-1], bin_widths)]
+    return tuple([densities, bin_bounds])
 
 
 def quantile(h: Distogram, value: float) -> Optional[float]:
