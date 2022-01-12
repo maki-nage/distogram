@@ -5,7 +5,7 @@ import distogram
 
 
 def test_count_at():
-    h = distogram.Distogram(bins=3)
+    h = distogram.Distogram(bin_count=3)
     print(h)
 
     # fill histogram
@@ -40,7 +40,7 @@ def test_count_at_not_enough_elements():
 
 
 def test_count_at_left():
-    h = distogram.Distogram(bins=6)
+    h = distogram.Distogram(bin_count=6)
 
     for i in [1, 2, 3, 4, 5, 6, 0.7, 1.1]:
         h = distogram.update(h, i)
@@ -49,7 +49,7 @@ def test_count_at_left():
 
 
 def test_count_at_right():
-    h = distogram.Distogram(bins=6)
+    h = distogram.Distogram(bin_count=6)
 
     for i in [1, 2, 3, 4, 5, 6, 6.7, 6.1]:
         h = distogram.update(h, i)

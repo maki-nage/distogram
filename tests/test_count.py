@@ -2,7 +2,7 @@ import distogram
 
 
 def test_count():
-    h = distogram.Distogram(bins=3)
+    h = distogram.Distogram(bin_count=3)
     assert distogram.count(h) == 0
 
     h = distogram.update(h, 16, count=4)
