@@ -356,7 +356,7 @@ def histogram(
     return u
 
 
-def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
+def frequency_density_distribution(h: Distogram) -> Tuple[List[float], List[float]]:
     """ Returns a histogram of the distribution
 
     Args:
@@ -379,7 +379,7 @@ def frequency_density_distribution(h: Distogram) -> List[Tuple[float, float]]:
     densities = [
         (new - last) / delta 
         for new, last, delta in zip(counts[1:], counts[:-1], bin_widths)]
-    return tuple([densities, bin_bounds])
+    return (densities, bin_bounds)
 
 
 def quantile(h: Distogram, value: float) -> Optional[float]:
