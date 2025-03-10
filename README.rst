@@ -87,7 +87,6 @@ Compute and display the histogram of the distribution:
     fig.show()
 
 .. image:: docs/normal_histogram.png
-  :scale: 60%
   :align: center
 
 Install

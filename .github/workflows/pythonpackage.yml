@@ -19,7 +19,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install codecov
+        pip install codecov twine build
         pip install -r requirements.txt
     - name: Lint with flake8
       run: |
@@ -37,3 +37,7 @@ jobs:
       if: success()
       run: |
         codecov -t ${{ secrets.CODECOV_TOKEN }}
+    - name: Test twine
+      run: |
+        python3 -m build
+        twine check dist/*.tar.gz
