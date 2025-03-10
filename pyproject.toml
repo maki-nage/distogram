@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "distogram"
-version = "3.0.2"
+version = "3.0.3"
 description = "A library to compute histograms on distributed environments, on streaming data"
 readme = "README.rst"
 requires-python = ">=3.6"

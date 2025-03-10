@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "3.0.2"
+current_version = "3.0.3"
 search = "{current_version}"
 replace = "{new_version}"
 regex = false
