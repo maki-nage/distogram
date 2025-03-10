@@ -1,6 +1,6 @@
 __author__ = """Romain Picard"""
 __email__ = 'romain.picard@oakbits.com'
-__version__ = '3.0.0'
+__version__ = '3.0.1'
 
 import math
 from bisect import bisect_left
