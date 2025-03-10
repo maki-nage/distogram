@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "distogram"
+version = "3.0.0"
+description = "A library to compute histograms on distributed environments, on streaming data"
+readme = "README.rst"
+requires-python = ">=3.6"
+license = {file = "LICENSE.txt"}
+keywords = ["reactivex", "streaming", "data-science"]
+authors = [
+  {email = "romain.picard@oakbits.com"},
+  {name = "Romain Picard"}
+]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'License :: OSI Approved :: MIT License',
+    'Intended Audience :: Developers',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering :: Mathematics',
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+]
+
+[project.urls]
+repository = "https://github.com/maki-nage/distogram.git"
+
+[tool.setuptools.packages.find]
+where = ["./"]
+include = ["distogram*"]
+exclude = ['tests*']
+namespaces = false
